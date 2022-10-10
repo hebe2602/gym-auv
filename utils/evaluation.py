@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.metrics import mean_squared_error
 
 
 def do_predictions(model:nn.Module, dataloader:torch.utils.data.DataLoader):
@@ -11,8 +12,8 @@ def do_predictions(model:nn.Module, dataloader:torch.utils.data.DataLoader):
         for X_batch, y_batch in dataloader:
             y_pred = model(X_batch) # only one batch in the test set
         
-        y_pred  = y_pred.numpy()
-        y_batch = y_batch.numpy()
+        y_pred  = y_pred.detach().numpy()
+        y_batch = y_batch.detach().numpy()
         
     model.train()
     return y_pred, y_batch
@@ -22,16 +23,17 @@ def runtime_analysis():
     raise NotImplementedError
 
 
-def plot_mse():
-    raise NotImplementedError
+def plot_mse(y_pred:np.ndarray, y_true:np.ndarray):
+    mse = mean_squared_error(y_true, y_pred)
+    return mse
 
 
 
-def plot_predictions(y_pred, y):
+def plot_predictions(y_pred:np.ndarray, y_true:np.ndarray):
 
     plt.figure(figsize=(15,15))
     plt.plot(y_pred, label='Predicted risk')
-    plt.plot(y, label='True risk')
+    plt.plot(y_true, label='True risk')
     plt.legend()
     plt.show()
 

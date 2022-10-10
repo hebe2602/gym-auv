@@ -2,10 +2,11 @@ import numpy as np
 import torch
 import torch.nn as nn
 import argparse
+import sys 
 
-from model.network import BasicModel, LidarCNN
+from model.network import LidarCNN, LidarCNN_LSTM, LidarCNN_best
 from utils.dataloader import LiDARDataset, load_LiDARDataset
-from utils.evaluation import plot_loss, plot_predictions, do_predictions
+from utils.evaluation import do_predictions, plot_loss, plot_predictions, plot_mse
 
 
 
@@ -29,7 +30,7 @@ class Trainer():
         self.loss             = nn.MSELoss()
         
         if optimizer == 'adam':
-            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+            self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.learning_rate)
         else:
             self.optimizer     = torch.optim.SGD(self.model.parameters(),  lr=self.learning_rate, momentum=0.9)
 
@@ -72,14 +73,12 @@ class Trainer():
         for e in range(self.epochs):
             train_loss_epoch = 0
             num_batches = 0
-            # if e == 10:
-            #     self.learning_rate = self.learning_rate * 1e-1
-            #     self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+
             for X_batch, y_batch in self.dataloader_train: 
                 train_loss = self.train_batch(X_batch, y_batch)
                 train_loss_epoch += train_loss
                 num_batches += 1
-
+        
             val_loss   = self.validation_step()
 
             self.training_loss.append(train_loss_epoch/num_batches)
@@ -105,44 +104,57 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--save_model',
-        help='Path with model to evaluate',
+        help='',
         default=False
     )
     args = parser.parse_args()
 
-    
-    torch.manual_seed(42)
+   
+    torch.manual_seed(2)
     # path_x = 'data/LiDAR.txt' 
     # path_y = 'data/risks.txt' 
     path_x =  'data/LiDAR_moving_obstacles.txt'
     path_y = 'data/risks_moving_obstacles.txt'
 
-    dataloader_train, dataloader_val, data_test = load_LiDARDataset(path_x, path_y, batch_size=20, test_as_tensor=True, shuffle=True)
-
-    cnn = LidarCNN(n_sensors=180, 
-                   output_channels=[8,8,8,8], 
-                   kernel_size=5)
+    data_train, data_val, data_test, dataloader_train, dataloader_val, dataloader_test  = load_LiDARDataset(path_x, path_y, 
+                                                                                                            mode='sum', 
+                                                                                                            batch_size=16, 
+                                                                                                            train_test_split=0.7,
+                                                                                                            shuffle=True)
+            
+    
+    cnn = LidarCNN_best(n_sensors=180, 
+                        output_channels=[4,4],
+                        kernel_size=9
+                        )
 
     if args.mode == 'train':
         trainer = Trainer(model=cnn, 
-                        epochs=30, 
-                        learning_rate=0.0003, 
+                        epochs=25, 
+                        learning_rate=0.001, 
                         dataloader_train=dataloader_train,
-                        dataloader_val=dataloader_val,
+                        dataloader_val=dataloader_test,
                         optimizer='adam')
 
         trainer.train()
+        exit()
         plot_loss(trainer.training_loss, trainer.validation_loss)
-
+        
         if args.save_model:
             print('Saving model')
-            torch.save(trainer.model.state_dict(), 'logs/trained_models/model_1_with_init.json')
- 
+            torch.save(trainer.model.state_dict(), 'logs/trained_models/model_1.json')
+
+
         trainer.model.eval()
         with torch.no_grad():
             y_pred = trainer.model(data_test.X)
+            y_train_pred = trainer.model(data_train.X)
+        trainer.model.eval()
 
         plot_predictions(y_pred, data_test.y.numpy())
+        plot_predictions(y_train_pred, data_train.y.numpy())
+        mse = plot_mse(y_pred, data_test.y.numpy())
+        print(mse)
     
     else:
         cnn.load_state_dict(torch.load(args.model_path))
@@ -152,4 +164,4 @@ if __name__ == '__main__':
 
         plot_predictions(y_pred, data_test.y.numpy())
 
-    
+
