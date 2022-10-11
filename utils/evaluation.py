@@ -24,6 +24,7 @@ def runtime_analysis():
 
 
 def plot_mse(y_pred:np.ndarray, y_true:np.ndarray):
+    # At the moment just returning the mse
     mse = mean_squared_error(y_true, y_pred)
     return mse
 
