@@ -4,9 +4,9 @@ import torch.nn as nn
 import argparse
 import sys 
 
-from model.network import LidarCNN, LidarCNN_LSTM, LidarCNN_best
-from utils.dataloader import LiDARDataset, load_LiDARDataset
-from utils.evaluation import do_predictions, plot_loss, plot_predictions, plot_mse
+from model.network import LidarCNN
+from utils.dataloader import load_LiDARDataset
+from utils.evaluation import plot_loss, plot_predictions, plot_mse
 
 
 
@@ -17,7 +17,6 @@ class Trainer():
                  learning_rate:float,
                  dataloader_train:torch.utils.data.DataLoader,
                  dataloader_val:torch.utils.data.DataLoader,
-                #  dataloader_test:torch.utils.data.DataLoader,
                  optimizer:str = 'sgd'   
                  ) -> None:
 
@@ -26,7 +25,6 @@ class Trainer():
         self.learning_rate    = learning_rate
         self.dataloader_train = dataloader_train
         self.dataloader_val   = dataloader_val
-        # self.dataloader_test  = dataloader_test
         self.loss             = nn.MSELoss()
         
         if optimizer == 'adam':
@@ -121,28 +119,27 @@ if __name__ == '__main__':
                                                                                                             batch_size=16, 
                                                                                                             train_test_split=0.7,
                                                                                                             shuffle=True)
-            
-    
-    cnn = LidarCNN_best(n_sensors=180, 
-                        output_channels=[4,4],
+      
+    cnn = LidarCNN(n_sensors=180, 
+                        output_channels=[4,4, 4],
                         kernel_size=9
                         )
 
+
     if args.mode == 'train':
         trainer = Trainer(model=cnn, 
-                        epochs=25, 
+                        epochs=11, 
                         learning_rate=0.001, 
                         dataloader_train=dataloader_train,
                         dataloader_val=dataloader_test,
                         optimizer='adam')
 
         trainer.train()
-        exit()
         plot_loss(trainer.training_loss, trainer.validation_loss)
         
         if args.save_model:
             print('Saving model')
-            torch.save(trainer.model.state_dict(), 'logs/trained_models/model_1.json')
+            torch.save(trainer.model.state_dict(), 'logs/trained_models/model_2.json')
 
 
         trainer.model.eval()
@@ -158,6 +155,8 @@ if __name__ == '__main__':
     
     else:
         cnn.load_state_dict(torch.load(args.model_path))
+        print('Loading model')
+        print(cnn)
         cnn.eval()
         with torch.no_grad():
             y_pred = cnn(data_test.X)
