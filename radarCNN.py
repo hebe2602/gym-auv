@@ -94,11 +94,11 @@ class PerceptionNavigationExtractor(BaseFeaturesExtractor):
         This corresponds to the number of unit for the last layer.
     """
 
-    def __init__(self, observation_space: gym.spaces.Dict, sensor_dim : int = 180, features_dim: int = 7, kernel_overlap : float = 0.05):
+    def __init__(self, observation_space: gym.spaces.Dict, sensor_dim : int = 180, features_dim: int = 1, kernel_overlap : float = 0.05):
         # We do not know features-dim here before going over all the items,
         # so put something dummy for now. PyTorch requires calling
         # nn.Module.__init__ before adding modules
-        super(PerceptionNavigationExtractor, self).__init__(observation_space, features_dim=features_dim)
+        super(PerceptionNavigationExtractor, self).__init__(observation_space, features_dim=1)
         # We assume CxHxW images (channels first)
         # Re-ordering will be done by pre-preprocessing or wrapper
 
@@ -114,8 +114,8 @@ class PerceptionNavigationExtractor(BaseFeaturesExtractor):
                                           n_sensors=sensor_dim, 
                                           output_channels=[4,4], 
                                           kernel_size=9,
-                                          features_dim=1)
-                                          
+                                          features_dim=features_dim)
+
                 print('Loading pretrained LidarCNN')
                 cnn.load_state_dict(th.load('gym_auv/utils/cnn_1_pretrained.json'))
                 
@@ -124,7 +124,8 @@ class PerceptionNavigationExtractor(BaseFeaturesExtractor):
                 
                 extractors[key] = cnn
                 
-                total_concat_size += features_dim  # extractors[key].n_flatten
+                total_concat_size += features_dim 
+
             elif key == "navigation":
                 # Pass navigation features straight through to the MlpPolicy.
                 extractors[key] = NavigatioNN(subspace, features_dim=subspace.shape[-1]) #nn.Identity()
