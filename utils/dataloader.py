@@ -1,11 +1,12 @@
 from math import ceil
-from pyexpat.model import XML_CTYPE_EMPTY
+import sklearn
 import torch
 # from torch.utils.data import Dataset, DataLoader
 
 import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 
 import pandas as pd
 
@@ -24,7 +25,11 @@ class LiDARDataset(torch.utils.data.Dataset):
     
     if not torch.is_tensor(X) and not torch.is_tensor(y):
         if standarize:
+            
+            # X = X/150
             X = (X - x_mean)/x_std
+            # scaler = StandardScaler()
+            # X = scaler.fit_transform(X)
     
     if prev_steps:
         X = prev_timesteps_feature_enginering(X, prev_steps)
@@ -52,11 +57,12 @@ def load_LiDARDataset(path_x:str,
     Load training set, validation set and test set from paths.
     '''
     X = np.loadtxt(path_x)
+    X = X/150
   
     if mode is None:
         y = np.loadtxt(path_y)
     else:
-        y = calculate_total_risk(path_y)
+        y = calculate_total_risk(path_y, mode)
 
     x_mean, x_std = X.mean(), X.std()
 
@@ -98,11 +104,11 @@ def load_LiDARDataset(path_x:str,
     return data_train, data_val, data_test, dataloader_train, dataloader_val, dataloader_test
 
 
-def calculate_total_risk(path_y:str, mode:str='max') -> np.ndarray:
+def calculate_total_risk(path_y:str, mode:str) -> np.ndarray:
     # Y has a list of CRI at each row -> number of risks varies at each row -> read with predefined number of cols -> pandas
     # Placeholder, can consider more sophisticated ways to calculate the total risk when more then one obstacle are present.
 
-    Y = pd.read_csv(path_y, delimiter=r"\s+", header=None, names=[i for i in range(5)]) # assume a maximum number of 5 obstacles at a time
+    Y = pd.read_csv(path_y, delimiter=r"\s+", header=None, names=[i for i in range(8)]) # assume a maximum number of 5 obstacles at a time
 
     if mode=='sum':
         y = Y.sum(axis=1)
