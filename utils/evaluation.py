@@ -26,16 +26,23 @@ def runtime_analysis():
 def plot_mse(y_pred:np.ndarray, y_true:np.ndarray):
     # At the moment just returning the mse
     mse = mean_squared_error(y_true, y_pred)
+
     return mse
 
 
 
 def plot_predictions(y_pred:np.ndarray, y_true:np.ndarray):
-
-    plt.figure(figsize=(15,15))
-    plt.plot(y_pred, label='Predicted risk')
-    plt.plot(y_true, label='True risk')
-    plt.legend()
+    s = 0
+    e = 1200
+    plt.figure(figsize=(15,10))
+    plt.plot(y_pred[s:e], label='Predicted risk', linewidth=3)
+    plt.plot(y_true[s:e], label='True risk', linewidth=3)
+    plt.legend(fontsize=30)
+    plt.ylabel('Collision risk', fontsize=26)
+    plt.xlabel('Measurement', fontsize=26)
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
+    plt.tight_layout()
     plt.show()
 
 def plot_loss(training_loss, validation_loss):

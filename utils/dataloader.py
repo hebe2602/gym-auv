@@ -25,8 +25,6 @@ class LiDARDataset(torch.utils.data.Dataset):
     
     if not torch.is_tensor(X) and not torch.is_tensor(y):
         if standarize:
-            
-            # X = X/150
             X = (X - x_mean)/x_std
             # scaler = StandardScaler()
             # X = scaler.fit_transform(X)
@@ -34,15 +32,23 @@ class LiDARDataset(torch.utils.data.Dataset):
     if prev_steps:
         X = prev_timesteps_feature_enginering(X, prev_steps)
     
-    self.X = torch.Tensor(X[:,None]) # add channel dimension of siuze 1
+    self.X = torch.Tensor(X[:,None]) # add channel dimension of size 1
 
     self.y = torch.Tensor(y[:,None])
 
   def __len__(self):
-      return len(self.X)
+    
+    return len(self.X)
 
   def __getitem__(self, i):
-      return self.X[i], self.y[i]
+    
+    # if i == 0:
+    #     diff = torch.zeros_like(self.X[i])
+    # else:
+    #     diff = self.X[i] - self.X[i-1]
+    # X_diff = torch.concat((self.X[i], diff)
+
+    return self.X[i], self.y[i]
 
 
 def load_LiDARDataset(path_x:str, 
@@ -58,14 +64,14 @@ def load_LiDARDataset(path_x:str,
     '''
     X = np.loadtxt(path_x)
     X = X/150
-  
+
+    x_mean, x_std = X.mean(), X.std()
+    
     if mode is None:
         y = np.loadtxt(path_y)
     else:
         y = calculate_total_risk(path_y, mode)
-
-    x_mean, x_std = X.mean(), X.std()
-
+    
     data_size  = len(X)
     train_size = int(train_test_split * data_size)
     val_size   = int(train_val_split * train_size)
@@ -136,3 +142,9 @@ def prev_timesteps_feature_enginering(X:np.ndarray, time_steps:int):
     
     return X_concat
     
+def load_speed_own_ship(path_speed, standardize:bool=True):
+    speed = np.loadtxt(path_speed, usecols=0)
+    speed = speed.reshape(-1,1)
+    # if standardize:
+    #     speed = (speed - speed.mean()) / speed.std()
+    return speed

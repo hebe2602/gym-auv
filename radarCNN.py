@@ -10,7 +10,7 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 class LidarCNN_pretrained(BaseFeaturesExtractor):
     def __init__(self, 
                  observation_space:gym.spaces.Box,
-                 output_channels:list = [4,4],
+                 output_channels:list,
                  kernel_size:int      = 9,
                  n_sensors:int        = 180, 
                  features_dim:int     =   1):
@@ -19,11 +19,6 @@ class LidarCNN_pretrained(BaseFeaturesExtractor):
         
         self.mean = 146.29372782863646  # mean found during training
         self.std  = 19.269065686163174  # standard deviation found during traning
-
-        self.n_sensors = n_sensors
-        self.kernel_size = kernel_size
-        self.padding = (self.kernel_size - 1) // 2
-        self.output_channels = output_channels
 
         self.feature_extractor = nn.Sequential(
             nn.Conv1d(
@@ -47,20 +42,44 @@ class LidarCNN_pretrained(BaseFeaturesExtractor):
                 padding_mode = 'circular'
             ),
             nn.ReLU(),
-            nn.MaxPool1d(kernel_size = 4,
-                         stride      = 4,
+            nn.MaxPool1d(kernel_size = 2,
+                         stride      = 2,
                          ceil_mode   = True),
-
+            nn.Conv1d(
+                in_channels  = self.output_channels[1],
+                out_channels = self.output_channels[2],
+                kernel_size  = self.kernel_size,
+                stride       = 1,
+                padding      = self.padding,
+                padding_mode = 'circular'
+            ),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size = 2,
+                         stride      = 2,
+                         ceil_mode   = True),
+            nn.Conv1d(
+                in_channels  = self.output_channels[2],
+                out_channels = self.output_channels[3],
+                kernel_size  = self.kernel_size,
+                stride       = 1,
+                padding      = self.padding,
+                padding_mode = 'circular'
+            ),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size = 2,
+                         stride      = 2,
+                         ceil_mode   = True),
             nn.Flatten()
         )
-        # Output of feature_extractor is [N, C_out, L/(2^num_maxpool2x1)]
-        len_flat = int(np.ceil(self.n_sensors/2**3) * self.output_channels[-1])
+        # Output of feature_extractor is [N, C_out, L/num_maxpool]
+        len_flat = int(np.ceil(self.n_sensors/2**4) * self.output_channels[-1])
         self.regressor = nn.Sequential(
-            nn.Linear(len_flat, 16),
+            nn.Linear(len_flat, 40),
             nn.ReLU(),
-            nn.Linear(16, 4),
-            nn.ReLU(),
-            nn.Linear(4, 1),
+            # nn.Linear(24, 8),
+            # nn.ReLU(),
+            nn.Linear(40, 1),
+            # nn.Sigmoid()
             nn.ReLU()
         )
 
@@ -112,12 +131,12 @@ class PerceptionNavigationExtractor(BaseFeaturesExtractor):
 
                 cnn = LidarCNN_pretrained(observation_space=subspace, 
                                           n_sensors=sensor_dim, 
-                                          output_channels=[4,4], 
+                                          output_channels=[2, 4, 4, 8], 
                                           kernel_size=9,
                                           features_dim=features_dim)
 
                 print('Loading pretrained LidarCNN')
-                cnn.load_state_dict(th.load('gym_auv/utils/cnn_1_pretrained.json'))
+                cnn.load_state_dict(th.load('gym_auv/utils/model_2_pretrained.json'))
                 
                 for param in cnn.parameters():
                     param.requires_grad = False # Freeze parameters. They will not be updated during backpropagation
