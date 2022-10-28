@@ -11,14 +11,14 @@ class LidarCNN_pretrained(BaseFeaturesExtractor):
     def __init__(self, 
                  observation_space:gym.spaces.Box,
                  output_channels:list,
-                 kernel_size:int      = 9,
+                 kernel_size:int      =   9,
                  n_sensors:int        = 180, 
-                 features_dim:int     =   1):
+                 features_dim:int     =   8):
 
         super(LidarCNN_pretrained, self).__init__(observation_space, features_dim=features_dim)
         
-        self.mean = 146.29372782863646  # mean found during training
-        self.std  = 19.269065686163174  # standard deviation found during traning
+        self.mean = 140.95125415736055  # mean found during training
+        self.std  = 27.658528310432285  # standard deviation found during traning
 
         self.feature_extractor = nn.Sequential(
             nn.Conv1d(
@@ -71,27 +71,33 @@ class LidarCNN_pretrained(BaseFeaturesExtractor):
                          ceil_mode   = True),
             nn.Flatten()
         )
-        # Output of feature_extractor is [N, C_out, L/num_maxpool]
+        # Output of feature_extractor is [N, C_out, L/2^num_maxpool]
         len_flat = int(np.ceil(self.n_sensors/2**4) * self.output_channels[-1])
-        self.regressor = nn.Sequential(
+        self.linear_1 = nn.Sequential(
             nn.Linear(len_flat, 40),
             nn.ReLU(),
-            # nn.Linear(24, 8),
-            # nn.ReLU(),
-            nn.Linear(40, 1),
-            # nn.Sigmoid()
+            nn.Linear(40, 8),
+            nn.ReLU()
+        )
+        self.linear_2 = nn.Sequential(
+            nn.Linear(8, 1),
             nn.ReLU()
         )
 
-    def forward(self, x):
-        # Normalica sensor measurements before forward pass
-        x = (x - self.mean)/self.std
 
+    def forward(self, x):
+        x = (x - self.mean)/self.std
         for layer in self.feature_extractor:
             x = layer(x)
-        for layer in self.regressor:
+
+        for layer in self.linear_1:
             x = layer(x)
+        
+        # for layer in self.linear_2:
+        #     x = layer(x)
+
         return x
+
 
 
 
@@ -113,7 +119,7 @@ class PerceptionNavigationExtractor(BaseFeaturesExtractor):
         This corresponds to the number of unit for the last layer.
     """
 
-    def __init__(self, observation_space: gym.spaces.Dict, sensor_dim : int = 180, features_dim: int = 1, kernel_overlap : float = 0.05):
+    def __init__(self, observation_space: gym.spaces.Dict, sensor_dim : int = 180, features_dim: int = 8, kernel_overlap : float = 0.05):
         # We do not know features-dim here before going over all the items,
         # so put something dummy for now. PyTorch requires calling
         # nn.Module.__init__ before adding modules
@@ -131,12 +137,12 @@ class PerceptionNavigationExtractor(BaseFeaturesExtractor):
 
                 cnn = LidarCNN_pretrained(observation_space=subspace, 
                                           n_sensors=sensor_dim, 
-                                          output_channels=[2, 4, 4, 8], 
+                                          output_channels=[2, 4, 4, 6], 
                                           kernel_size=9,
                                           features_dim=features_dim)
 
                 print('Loading pretrained LidarCNN')
-                cnn.load_state_dict(th.load('gym_auv/utils/model_2_pretrained.json'))
+                cnn.load_state_dict(th.load('gym_auv/utils/model_3_pretrained.json'))
                 
                 for param in cnn.parameters():
                     param.requires_grad = False # Freeze parameters. They will not be updated during backpropagation
@@ -161,7 +167,7 @@ class PerceptionNavigationExtractor(BaseFeaturesExtractor):
         # self.extractors contain nn.Modules that do all the processing.
         for key, extractor in self.extractors.items():
             encoded_tensor_list.append(extractor(observations[key]))
-            print('Appended' ,key)
-        print(encoded_tensor_list)
+        #     print('Appended' ,key)
+        # print(encoded_tensor_list)
         # Return a (B, self._features_dim) PyTorch tensor, where B is batch dimension.
         return th.cat(encoded_tensor_list, dim=1)
