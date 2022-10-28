@@ -10,15 +10,20 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 class LidarCNN_pretrained(BaseFeaturesExtractor):
     def __init__(self, 
                  observation_space:gym.spaces.Box,
-                 output_channels:list,
-                 kernel_size:int      =   9,
+                 output_channels:list = [2,4,4,6],
+                 kernel_size:int      = 9,
                  n_sensors:int        = 180, 
-                 features_dim:int     =   8):
+                 features_dim:int     = 8):
 
         super(LidarCNN_pretrained, self).__init__(observation_space, features_dim=features_dim)
         
-        self.mean = 140.95125415736055  # mean found during training
-        self.std  = 27.658528310432285  # standard deviation found during traning
+        self.mean = 146.29372782863646  # mean found during training
+        self.std  = 19.269065686163174  # standard deviation found during traning
+
+        self.n_sensors = n_sensors
+        self.kernel_size = kernel_size
+        self.padding = (self.kernel_size - 1) // 2
+        self.output_channels = output_channels
 
         self.feature_extractor = nn.Sequential(
             nn.Conv1d(
@@ -71,16 +76,12 @@ class LidarCNN_pretrained(BaseFeaturesExtractor):
                          ceil_mode   = True),
             nn.Flatten()
         )
-        # Output of feature_extractor is [N, C_out, L/2^num_maxpool]
+        # Output of feature_extractor is [N, C_out, L/num_maxpool]
         len_flat = int(np.ceil(self.n_sensors/2**4) * self.output_channels[-1])
         self.linear_1 = nn.Sequential(
             nn.Linear(len_flat, 40),
             nn.ReLU(),
             nn.Linear(40, 8),
-            nn.ReLU()
-        )
-        self.linear_2 = nn.Sequential(
-            nn.Linear(8, 1),
             nn.ReLU()
         )
 
@@ -92,25 +93,11 @@ class LidarCNN_pretrained(BaseFeaturesExtractor):
 
         for layer in self.linear_1:
             x = layer(x)
-        
-        # for layer in self.linear_2:
-        #     x = layer(x)
 
         return x
 
 
 
-
-class NavigatioNN(BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 6):
-        super(NavigatioNN, self).__init__(observation_space, features_dim=features_dim)
-
-        self.passthrough = nn.Identity()
-
-    def forward(self, observations: th.Tensor) -> th.Tensor:
-        shape = observations.shape
-        observations = observations[:,0,:].reshape(shape[0], shape[-1])
-        return self.passthrough(observations)
 
 class PerceptionNavigationExtractor(BaseFeaturesExtractor):
     """
@@ -137,20 +124,25 @@ class PerceptionNavigationExtractor(BaseFeaturesExtractor):
 
                 cnn = LidarCNN_pretrained(observation_space=subspace, 
                                           n_sensors=sensor_dim, 
-                                          output_channels=[2, 4, 4, 6], 
+                                          output_channels=[2,4,4,6], 
                                           kernel_size=9,
                                           features_dim=features_dim)
 
-                print('Loading pretrained LidarCNN')
-                cnn.load_state_dict(th.load('gym_auv/utils/model_3_pretrained.json'))
+                print('Loading pretrained LidarCNN')                          
+                pretrained_dict = th.load('gym_auv/utils/model_3_pretrained.json')
+                model_dict = cnn.state_dict()
                 
+                pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict} # 1. filter out unnecessary keys
+                model_dict.update(pretrained_dict) # 2. overwrite entries in the existing state dict
+                cnn.load_state_dict(pretrained_dict) # 3. load the new state dict
+
+                print(cnn)
                 for param in cnn.parameters():
                     param.requires_grad = False # Freeze parameters. They will not be updated during backpropagation
                 
                 extractors[key] = cnn
                 
-                total_concat_size += features_dim 
-
+                total_concat_size += features_dim  # extractors[key].n_flatten
             elif key == "navigation":
                 # Pass navigation features straight through to the MlpPolicy.
                 extractors[key] = NavigatioNN(subspace, features_dim=subspace.shape[-1]) #nn.Identity()
@@ -170,4 +162,6 @@ class PerceptionNavigationExtractor(BaseFeaturesExtractor):
         #     print('Appended' ,key)
         # print(encoded_tensor_list)
         # Return a (B, self._features_dim) PyTorch tensor, where B is batch dimension.
+      
         return th.cat(encoded_tensor_list, dim=1)
+
