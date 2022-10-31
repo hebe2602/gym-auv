@@ -7,7 +7,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 
-class LidarCNN_pretrained(BaseFeaturesExtractor):
+class LidarCNN_deep_pretrained(BaseFeaturesExtractor):
     def __init__(self, 
                  observation_space:gym.spaces.Box,
                  output_channels:list = [2,4,4,6],
@@ -15,11 +15,8 @@ class LidarCNN_pretrained(BaseFeaturesExtractor):
                  n_sensors:int        = 180, 
                  features_dim:int     = 8):
 
-        super(LidarCNN_pretrained, self).__init__(observation_space, features_dim=features_dim)
+        super(LidarCNN_deep_pretrained, self).__init__(observation_space, features_dim=features_dim)
         
-        self.mean = 143.3607156355717  # mean found during training
-        self.std  = 23.58293602126056  # standard deviation found during traning
-
         self.n_sensors = n_sensors
         self.kernel_size = kernel_size
         self.padding = (self.kernel_size - 1) // 2
@@ -78,16 +75,16 @@ class LidarCNN_pretrained(BaseFeaturesExtractor):
         )
         # Output of feature_extractor is [N, C_out, L/num_maxpool]
         len_flat = int(np.ceil(self.n_sensors/2**4) * self.output_channels[-1])
+        
         self.linear_1 = nn.Sequential(
             nn.Linear(len_flat, 40),
             nn.ReLU(),
             nn.Linear(40, 8),
-            nn.ReLU()
         )
 
 
     def forward(self, x):
-        x = (x - self.mean)/self.std
+
         for layer in self.feature_extractor:
             x = layer(x)
 
@@ -170,7 +167,7 @@ class PerceptionNavigationExtractor(BaseFeaturesExtractor):
         for key, subspace in observation_space.spaces.items():
             if key == "perception":
 
-                # cnn = LidarCNN_pretrained(observation_space=subspace, 
+                # cnn = LidarCNN_deep_pretrained(observation_space=subspace, 
                 #                           n_sensors=sensor_dim, 
                 #                           output_channels=[2,4,4,6], 
                 #                           kernel_size=9,

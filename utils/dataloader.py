@@ -21,33 +21,23 @@ class LiDARDataset(torch.utils.data.Dataset):
                X:np.ndarray, y:np.ndarray, 
                x_mean:np.float, x_std:np.float,
                prev_steps:int=None,
-               standarize:bool=True):
+               standarize:bool=False):
     
     if not torch.is_tensor(X) and not torch.is_tensor(y):
         if standarize:
             X = (X - x_mean)/x_std
-            # scaler = StandardScaler()
-            # X = scaler.fit_transform(X)
-    
+
     if prev_steps:
         X = prev_timesteps_feature_enginering(X, prev_steps)
     
     self.X = torch.Tensor(X[:,None]) # add channel dimension of size 1
-
     self.y = torch.Tensor(y[:,None])
 
   def __len__(self):
-    
+
     return len(self.X)
 
   def __getitem__(self, i):
-    
-    # if i == 0:
-    #     diff = torch.zeros_like(self.X[i])
-    # else:
-    #     diff = self.X[i] - self.X[i-1]
-    # X_diff = torch.concat((self.X[i], diff)
-
     return self.X[i], self.y[i]
 
 
@@ -63,10 +53,8 @@ def load_LiDARDataset(path_x:str,
     Load training set, validation set and test set from paths.
     '''
     X = np.loadtxt(path_x)
-    X = X/150
+    X =  1 - X/150
 
-    x_mean, x_std = X.mean(), X.std()
-    
     if mode is None:
         y = np.loadtxt(path_y)
     else:
@@ -81,6 +69,9 @@ def load_LiDARDataset(path_x:str,
     # Training set
     X_train = X[:train_size,:]
     y_train = y[:train_size]
+    
+    x_mean, x_std = X_train.mean(), X_train.std() # Mean and std only from training set
+    
     data_train = LiDARDataset(X_train, y_train, x_mean, x_std, prev_steps=prev_steps)
     dataloader_train = torch.utils.data.DataLoader(data_train, 
                                                 batch_size=batch_size, 
@@ -142,9 +133,3 @@ def prev_timesteps_feature_enginering(X:np.ndarray, time_steps:int):
     
     return X_concat
     
-def load_speed_own_ship(path_speed, standardize:bool=True):
-    speed = np.loadtxt(path_speed, usecols=0)
-    speed = speed.reshape(-1,1)
-    # if standardize:
-    #     speed = (speed - speed.mean()) / speed.std()
-    return speed

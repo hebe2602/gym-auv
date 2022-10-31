@@ -3,10 +3,10 @@ import torch
 import torch.nn as nn
 import argparse
 
-from models.lidar_cnn        import LidarCNN
-from models.lidar_cnn_2d     import LidarCNN_2D
-from models.lidar_cnn_bypass import LidarCNN_bypass
-from models.lidar_cnn_diff   import LidarCNN_diff
+from models.lidar_cnn_deep    import LidarCNN_deep
+from models.lidar_cnn_shallow import LidarCNN_shallow
+# from models.lidar_cnn_2d      import LidarCNN_2D
+# from models.lidar_cnn_diff    import LidarCNN_diff
 
 from utils.dataloader import load_LiDARDataset
 from utils.evaluation import plot_loss, plot_predictions, plot_mse
@@ -109,46 +109,44 @@ if __name__ == '__main__':
 
    
     torch.manual_seed(2)
-    # path_x = 'data/LiDAR_moving_obstacles_old.txt' 
-    # path_y = 'data/risks_moving_obstacles_old.txt' 
-    # path_y = 'data/risks.txt' 
+   
     path_x =  'data/LiDAR_MovingObstaclesNoRules.csv'
     path_y = 'data/risk_MovingObstaclesNoRules.csv'
-
-    # data_train, data_val, data_test, dataloader_train, dataloader_val, dataloader_test  = load_LiDARDataset(path_x, path_y, 
-    #                                                                                                         mode='max', 
-    #                                                                                                         batch_size=16, 
-    #                                                                                                         train_test_split=0.70,
-    #                                                                                                         train_val_split=0.3,
-    #                                                                                                         shuffle=True)
+    
     
     data_train, data_val, data_test, dataloader_train, dataloader_val, dataloader_test  = load_LiDARDataset(path_x, path_y, 
                                                                                                             mode='max', 
                                                                                                             batch_size=16, 
-                                                                                                            train_test_split=0.70,
+                                                                                                            train_test_split=0.7,
                                                                                                             train_val_split=0.3,
                                                                                                             shuffle=True)
-  
-    cnn = LidarCNN(n_sensors=180, 
-                    output_channels=[2, 4, 4, 8],
+
+    # cnn = LidarCNN_shallow(n_sensors=180, 
+    #                 output_channels=[1],
+    #                 kernel_size=45
+    #                 )
+
+    cnn = LidarCNN_deep(n_sensors=180, 
+                    output_channels=[2,4,4,6],
                     kernel_size=9
                     )
 
     if args.mode == 'train':
         trainer = Trainer(model=cnn, 
-                        epochs=10, 
+                        epochs=14, 
                         learning_rate=0.001, 
                         dataloader_train=dataloader_train,
                         dataloader_val=dataloader_val,
                         optimizer='adam')
 
         trainer.train()
+
         plot_loss(trainer.training_loss, trainer.validation_loss)
         
         if args.save_model:
             cnn_feature_extractor = cnn
             print('Saving model')
-            torch.save(trainer.model.state_dict(), 'logs/trained_models/model_2_pretrained.json')
+            torch.save(trainer.model.state_dict(), 'logs/trained_models/model_deep_pretrained.json')
 
 
         trainer.model.eval()
@@ -159,12 +157,27 @@ if __name__ == '__main__':
 
         mse = plot_mse(y_pred, data_test.y.numpy())
         print('mse:', mse)
-    
+
+        
     else:
+
+        # pretrained_dict = torch.load(args.model_path)   
+        # model_dict = cnn.state_dict()
+        # pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict} # 1. filter out unnecessary keys
+        # model_dict.update(pretrained_dict) # 2. overwrite entries in the existing state dict
+        # cnn.load_state_dict(pretrained_dict) # 3. load the new state dict
+
+        
         cnn.load_state_dict(torch.load(args.model_path))
         print('Loading model')
         print(cnn)
+        for param in cnn.parameters():
+            param.requires_grad = False
+
         cnn.eval()
+
+        # print(cnn.feature_extractor[0].weight.detach().numpy())
+        
         with torch.no_grad():
             y_pred = cnn(data_test.X)
 

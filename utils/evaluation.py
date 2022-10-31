@@ -32,11 +32,11 @@ def plot_mse(y_pred:np.ndarray, y_true:np.ndarray):
 
 
 def plot_predictions(y_pred:np.ndarray, y_true:np.ndarray):
-    s = 0
-    e = 1200
+    s = None
+    e = None
     plt.figure(figsize=(15,10))
-    plt.plot(y_pred[s:e], label='Predicted risk', linewidth=3)
-    plt.plot(y_true[s:e], label='True risk', linewidth=3)
+    plt.plot(y_pred[s:e], label='Predicted risk', linewidth=2)
+    plt.plot(y_true[s:e], label='True risk', linewidth=2)
     plt.legend(fontsize=30)
     plt.ylabel('Collision risk', fontsize=26)
     plt.xlabel('Measurement', fontsize=26)
