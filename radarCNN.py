@@ -17,8 +17,8 @@ class LidarCNN_pretrained(BaseFeaturesExtractor):
 
         super(LidarCNN_pretrained, self).__init__(observation_space, features_dim=features_dim)
         
-        self.mean = 146.29372782863646  # mean found during training
-        self.std  = 19.269065686163174  # standard deviation found during traning
+        self.mean = 143.3607156355717  # mean found during training
+        self.std  = 23.58293602126056  # standard deviation found during traning
 
         self.n_sensors = n_sensors
         self.kernel_size = kernel_size
@@ -96,8 +96,56 @@ class LidarCNN_pretrained(BaseFeaturesExtractor):
 
         return x
 
+class LidarCNN_shallow_pretrained(BaseFeaturesExtractor):
+    def __init__(self, 
+                 observation_space:gym.spaces.Box,
+                 n_sensors:int=180, 
+                 output_channels:list=[1], 
+                 kernel_size:int=45, 
+                 padding:int=15,
+                 stride:int=15,
+                 features_dim:int=12):
 
+        super(LidarCNN_shallow_pretrained, self).__init__(observation_space, features_dim=features_dim)
+        self.n_sensors       = n_sensors
+        self.kernel_size     = kernel_size
+        self.padding         = padding 
+        self.stride          = stride
+        self.output_channels = output_channels
 
+        self.mean = 143.3607156355717  # mean found during training
+        self.std  = 23.58293602126056  # standard deviation found during traning
+
+        self.feature_extractor = nn.Sequential(
+            nn.Conv1d(
+                in_channels  = 1,
+                out_channels = self.output_channels[0],
+                kernel_size  = self.kernel_size,
+                stride       = self.stride,
+                padding      = self.padding,
+                padding_mode = 'circular'
+            ),
+            nn.ReLU(),
+            nn.Flatten()
+        )
+    
+    def forward(self, x):
+        x = (x - self.mean)/self.std
+        for layer in self.feature_extractor:
+            x = layer(x)
+
+        return x
+
+class NavigatioNN(BaseFeaturesExtractor):
+    def __init__(self, observation_space: gym.spaces.Box, features_dim: int = 6):
+        super(NavigatioNN, self).__init__(observation_space, features_dim=features_dim)
+
+        self.passthrough = nn.Identity()
+
+    def forward(self, observations: th.Tensor) -> th.Tensor:
+        shape = observations.shape
+        observations = observations[:,0,:].reshape(shape[0], shape[-1])
+        return self.passthrough(observations)
 
 class PerceptionNavigationExtractor(BaseFeaturesExtractor):
     """
@@ -122,14 +170,22 @@ class PerceptionNavigationExtractor(BaseFeaturesExtractor):
         for key, subspace in observation_space.spaces.items():
             if key == "perception":
 
-                cnn = LidarCNN_pretrained(observation_space=subspace, 
-                                          n_sensors=sensor_dim, 
-                                          output_channels=[2,4,4,6], 
-                                          kernel_size=9,
-                                          features_dim=features_dim)
+                # cnn = LidarCNN_pretrained(observation_space=subspace, 
+                #                           n_sensors=sensor_dim, 
+                #                           output_channels=[2,4,4,6], 
+                #                           kernel_size=9,
+                #                           features_dim=features_dim) #8
+
+                cnn = LidarCNN_shallow_pretrained(observation_space=subspace, 
+                                                  n_sensors=sensor_dim, 
+                                                  output_channels=[1], 
+                                                  kernel_size=45,
+                                                  padding=15,
+                                                  stride=15,
+                                                  features_dim=features_dim) #12
 
                 print('Loading pretrained LidarCNN')                          
-                pretrained_dict = th.load('gym_auv/utils/model_3_pretrained.json')
+                pretrained_dict = th.load('gym_auv/utils/model_shallow_pretrained.json')
                 model_dict = cnn.state_dict()
                 
                 pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict} # 1. filter out unnecessary keys
