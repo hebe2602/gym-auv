@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import argparse
 
-from models.lidar_cnn_deep    import LidarCNN_deep
+from models.lidar_cnn_deep    import LidarCNN_deep, LidarCNN_2_deep
 from models.lidar_cnn_shallow import LidarCNN_shallow
 # from models.lidar_cnn_2d      import LidarCNN_2D
 # from models.lidar_cnn_diff    import LidarCNN_diff
@@ -126,15 +126,20 @@ if __name__ == '__main__':
     #                 kernel_size=45
     #                 )
 
-    cnn = LidarCNN_deep(n_sensors=180, 
-                    output_channels=[2,4,4,6],
-                    kernel_size=9
+    # cnn = LidarCNN_deep(n_sensors=180, 
+    #                 output_channels=[2,4,4,6],
+    #                 kernel_size=9
+    #                 )
+
+    cnn = LidarCNN_2_deep(n_sensors=180, 
+                    output_channels=[3,2,1],
+                    kernel_size=45
                     )
 
     if args.mode == 'train':
         trainer = Trainer(model=cnn, 
-                        epochs=14, 
-                        learning_rate=0.001, 
+                        epochs=11, 
+                        learning_rate=0.0025, 
                         dataloader_train=dataloader_train,
                         dataloader_val=dataloader_val,
                         optimizer='adam')
@@ -146,7 +151,7 @@ if __name__ == '__main__':
         if args.save_model:
             cnn_feature_extractor = cnn
             print('Saving model')
-            torch.save(trainer.model.state_dict(), 'logs/trained_models/model_deep_pretrained.json')
+            torch.save(trainer.model.state_dict(), 'logs/trained_models/model_2_deep_pretrained.json')
 
 
         trainer.model.eval()
