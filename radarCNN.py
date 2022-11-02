@@ -110,9 +110,6 @@ class LidarCNN_shallow_pretrained(BaseFeaturesExtractor):
         self.stride          = stride
         self.output_channels = output_channels
 
-        self.mean = 143.3607156355717  # mean found during training
-        self.std  = 23.58293602126056  # standard deviation found during traning
-
         self.feature_extractor = nn.Sequential(
             nn.Conv1d(
                 in_channels  = 1,
@@ -127,7 +124,7 @@ class LidarCNN_shallow_pretrained(BaseFeaturesExtractor):
         )
     
     def forward(self, x):
-        x = (x - self.mean)/self.std
+        
         for layer in self.feature_extractor:
             x = layer(x)
 
