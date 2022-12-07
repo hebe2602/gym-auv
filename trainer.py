@@ -3,15 +3,16 @@ import torch
 import torch.nn as nn
 import argparse
 
-from models.lidar_cnn_deep    import LidarCNN_deep, LidarCNN_2_deep
+from models.lidar_cnn_deep    import LidarCNN_deep, LidarCNN_2_deep, LidarCNN_test
 from models.lidar_cnn_shallow import LidarCNN_shallow
 # from models.lidar_cnn_2d      import LidarCNN_2D
 # from models.lidar_cnn_diff    import LidarCNN_diff
 
 from utils.dataloader import load_LiDARDataset
-from utils.evaluation import plot_loss, plot_predictions, plot_mse
+from utils.evaluation import plot_loss, plot_predictions, plot_mse, plot_multiple_predictions
 
-
+import matplotlib.pyplot as plt
+from sklearn.metrics import mean_squared_error
 
 class Trainer():
     def __init__(self, 
@@ -110,8 +111,12 @@ if __name__ == '__main__':
    
     torch.manual_seed(2)
    
+    path_x =  'data/LiDAR_MovingObstaclesNoRules_old.csv'
+    path_y = 'data/risk_MovingObstaclesNoRules_old.csv'
+
     path_x =  'data/LiDAR_MovingObstaclesNoRules.csv'
     path_y = 'data/risk_MovingObstaclesNoRules.csv'
+   
     
     
     data_train, data_val, data_test, dataloader_train, dataloader_val, dataloader_test  = load_LiDARDataset(path_x, path_y, 
@@ -121,25 +126,27 @@ if __name__ == '__main__':
                                                                                                             train_val_split=0.3,
                                                                                                             shuffle=True)
 
-    # cnn = LidarCNN_shallow(n_sensors=180, 
-    #                 output_channels=[1],
-    #                 kernel_size=45
-    #                 )
-
-    # cnn = LidarCNN_deep(n_sensors=180, 
-    #                 output_channels=[2,4,4,6],
-    #                 kernel_size=9
-    #                 )
-
-    cnn = LidarCNN_2_deep(n_sensors=180, 
-                    output_channels=[3,2,1],
+    cnn_shallow = LidarCNN_shallow(n_sensors=180, 
+                    output_channels=[1],
                     kernel_size=45
                     )
 
+    cnn_deep = LidarCNN_deep(n_sensors=180, 
+                    output_channels=[2,4,4,6],
+                    kernel_size=9
+                    )
+
+    cnn_not_so_deep = LidarCNN_2_deep(n_sensors=180, 
+                    output_channels=[3,2,1],
+                    kernel_size=45
+                    )
+    cnn_test = LidarCNN_test(n_sensors=180,
+                             output_channels=[3,2,1])
+
     if args.mode == 'train':
-        trainer = Trainer(model=cnn, 
-                        epochs=11, 
-                        learning_rate=0.0025, 
+        trainer = Trainer(model=cnn_deep, 
+                        epochs=14, 
+                        learning_rate=0.0005, 
                         dataloader_train=dataloader_train,
                         dataloader_val=dataloader_val,
                         optimizer='adam')
@@ -149,9 +156,9 @@ if __name__ == '__main__':
         plot_loss(trainer.training_loss, trainer.validation_loss)
         
         if args.save_model:
-            cnn_feature_extractor = cnn
+            cnn_feature_extractor = cnn_shallow
             print('Saving model')
-            torch.save(trainer.model.state_dict(), 'logs/trained_models/model_2_deep_pretrained.json')
+            torch.save(trainer.model.state_dict(), 'logs/trained_models/model_2_deep_noReLU_pretrained.json')
 
 
         trainer.model.eval()
@@ -173,20 +180,44 @@ if __name__ == '__main__':
         # cnn.load_state_dict(pretrained_dict) # 3. load the new state dict
 
         
-        cnn.load_state_dict(torch.load(args.model_path))
-        print('Loading model')
-        print(cnn)
-        for param in cnn.parameters():
-            param.requires_grad = False
+        cnn_shallow.load_state_dict(torch.load('logs/trained_models/model_shallow_pretrained.json'))
+        cnn_not_so_deep.load_state_dict(torch.load('logs/trained_models/model_2_deep_pretrained.json'))
+        cnn_deep.load_state_dict(torch.load('logs/trained_models/model_deep_pretrained.json'))
 
-        cnn.eval()
+        cnn_shallow.eval()
+        cnn_not_so_deep.eval()
+        cnn_deep.eval()
 
         # print(cnn.feature_extractor[0].weight.detach().numpy())
-        
+        y_pred = np.zeros((data_test.X.shape[0],3))
         with torch.no_grad():
-            y_pred = cnn(data_test.X)
+            y_pred[:,0] = cnn_shallow(data_test.X).numpy().reshape(-1,)
+            y_pred[:,1] = cnn_not_so_deep(data_test.X).numpy().reshape(-1,)
+            y_pred[:,2] = cnn_deep(data_test.X).numpy().reshape(-1,)
 
-        plot_predictions(y_pred, data_test.y.numpy())
-        mse = plot_mse(y_pred, data_test.y.numpy())
-        print('mse:', mse)
+        y_true = data_test.y.numpy()
+        
+        plot_multiple_predictions(y_pred, y_true, ['1conv','3conv', 'Deep'])
+        
+        mse_shallow = plot_mse(y_pred[:,0], y_true)
+        mse_not_so_deep = plot_mse(y_pred[:,1], y_true)
+        mse_deep = plot_mse(y_pred[:,2], y_true)
+
+        # mse_shallow = mean_squared_error(y_true=y_true, y_pred=y_pred[:,0])
+        
+        # mse_i = np.zeros_like(y_true)
+        # for i in range(len(y_true)):
+        #     mse_i[i] = mean_squared_error([y_true[i]], [y_pred[i,2]])
+
+        # mse_shallow_std = mse_shallow_std.mean()
+        
+  
+        # print(mse_i.std())
+        # print(mse_i.mean())
+       
+        print('mse_shallow:', mse_shallow)
+        print('mse_not_so_deep:', mse_not_so_deep)
+        print('mse_deep:', mse_deep)
+
+  
 

@@ -29,10 +29,11 @@ class LidarCNN_shallow(nn.Module):
                 padding      = self.padding,
                 padding_mode = 'circular'
             ),
+            nn.ReLU(),
             nn.Flatten()
         )
-        # Output of feature_extractor is [N, C_out, L/num_maxpool]
-        len_flat =12# int(np.ceil(self.n_sensors/2**4) * self.output_channels[-1])
+
+        len_flat =12
         self.linear = nn.Sequential(
             nn.Linear(len_flat, 1),
             nn.ReLU()

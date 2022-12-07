@@ -48,19 +48,6 @@ class LidarCNN_2D(nn.Module):
                          stride      = 2,
                          ceil_mode   = True),
             
-            # nn.Conv2d(
-            #     in_channels  = self.output_channels[1],
-            #     out_channels = self.output_channels[2],
-            #     kernel_size  = self.kernel_size,
-            #     stride       = 1,
-            #     padding      = self.padding,
-            #     padding_mode = 'circular'
-            # ),
-            # nn.ReLU(),
-            # nn.MaxPool2d(kernel_size = 2,
-            #              stride      = 2,
-            #              ceil_mode   = True),
-
             nn.Flatten()
         )
         # Output of feature_extractor is [N, C_out, L/num_maxpool]
