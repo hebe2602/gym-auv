@@ -1,0 +1,4 @@
+CNN,Progress,COLAV,CTE,Time
+Deep_random, 95.95, 98, 130, 3816
+Deep_locked,  73.16, 60, 65.41, 1294
+Deep_unlocked, 97.82, 96, 50, 934
