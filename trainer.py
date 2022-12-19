@@ -3,13 +3,14 @@ import torch
 import torch.nn as nn
 import argparse
 
-from models.lidar_cnn_deep    import LidarCNN_deep, LidarCNN_2_deep, LidarCNN_test
+from models.lidar_cnn_deep    import LidarCNN_deep, LidarCNN_2_deep
 from models.lidar_cnn_shallow import LidarCNN_shallow
 # from models.lidar_cnn_2d      import LidarCNN_2D
 # from models.lidar_cnn_diff    import LidarCNN_diff
 
 from utils.dataloader import load_LiDARDataset
 from utils.evaluation import plot_loss, plot_predictions, plot_mse, plot_multiple_predictions
+from utils.evaluation import plot_evaluation_metrics_single_agent, plot_evaluation_metrics_multiple_agents, plot_mse_histogram
 
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
@@ -111,9 +112,6 @@ if __name__ == '__main__':
    
     torch.manual_seed(2)
    
-    path_x =  'data/LiDAR_MovingObstaclesNoRules_old.csv'
-    path_y = 'data/risk_MovingObstaclesNoRules_old.csv'
-
     path_x =  'data/LiDAR_MovingObstaclesNoRules.csv'
     path_y = 'data/risk_MovingObstaclesNoRules.csv'
    
@@ -140,8 +138,7 @@ if __name__ == '__main__':
                     output_channels=[3,2,1],
                     kernel_size=45
                     )
-    cnn_test = LidarCNN_test(n_sensors=180,
-                             output_channels=[3,2,1])
+
 
     if args.mode == 'train':
         trainer = Trainer(model=cnn_deep, 
@@ -197,27 +194,20 @@ if __name__ == '__main__':
 
         y_true = data_test.y.numpy()
         
-        plot_multiple_predictions(y_pred, y_true, ['1conv','3conv', 'Deep'])
+        plot_multiple_predictions(y_pred, y_true, ['1conv','3conv', 'DeepCNN'])
         
         mse_shallow = plot_mse(y_pred[:,0], y_true)
         mse_not_so_deep = plot_mse(y_pred[:,1], y_true)
         mse_deep = plot_mse(y_pred[:,2], y_true)
 
-        # mse_shallow = mean_squared_error(y_true=y_true, y_pred=y_pred[:,0])
-        
-        # mse_i = np.zeros_like(y_true)
-        # for i in range(len(y_true)):
-        #     mse_i[i] = mean_squared_error([y_true[i]], [y_pred[i,2]])
-
-        # mse_shallow_std = mse_shallow_std.mean()
-        
-  
-        # print(mse_i.std())
-        # print(mse_i.mean())
-       
         print('mse_shallow:', mse_shallow)
         print('mse_not_so_deep:', mse_not_so_deep)
         print('mse_deep:', mse_deep)
+
+        # Plotting results from RL training
+        plot_evaluation_metrics_single_agent()
+        plot_evaluation_metrics_multiple_agents()
+        plot_mse_histogram()
 
   
 
