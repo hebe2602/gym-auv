@@ -57,7 +57,7 @@ class SafetyFilter:
             Vu_0 = np.eye(ny)
             ocp.cost.Vu_0 = Vu_0
 
-            F_u_max = 2.0
+            F_u_max = 1.0
             F_r_max = 0.15
 
             W_0 = 1e-1*np.eye(ny)
