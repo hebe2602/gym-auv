@@ -39,7 +39,7 @@ class SafetyFilter:
             nx = model.x.size()[0]
             nu = model.u.size()[0]
             ny = nu
-            self._N = 50
+            self._N = 30
             T_f = self._N*self._T_s
 
             # set dimensions
@@ -57,7 +57,7 @@ class SafetyFilter:
             Vu_0 = np.eye(ny)
             ocp.cost.Vu_0 = Vu_0
 
-            F_u_max = 1.0
+            F_u_max = 2.0
             F_r_max = 0.15
 
             W_0 = 1e-1*np.eye(ny)
@@ -115,7 +115,7 @@ class SafetyFilter:
             # PARTIAL_CONDENSING_HPIPM, FULL_CONDENSING_QPOASES, FULL_CONDENSING_HPIPM,
             # PARTIAL_CONDENSING_QPDUNES, PARTIAL_CONDENSING_OSQP, FULL_CONDENSING_DAQP
             ocp.solver_options.hessian_approx = 'GAUSS_NEWTON' # 'GAUSS_NEWTON', 'EXACT'
-            ocp.solver_options.integrator_type = 'IRK'
+            ocp.solver_options.integrator_type = 'ERK'
             # ocp.solver_options.print_level = 1
             ocp.solver_options.nlp_solver_type = 'SQP' # SQP_RTI, SQP
             ocp.solver_options.sim_method_num_stages = 4
@@ -124,7 +124,7 @@ class SafetyFilter:
             ocp.solver_options.nlp_solver_tol_eq = 1e-2
             ocp.solver_options.nlp_solver_tol_stat = 1e-2
             ocp.solver_options.nlp_solver_step_length = 1.0
-            ocp.solver_options.nlp_solver_ext_qp_res
+            ocp.solver_options.qp_solver_iter_max = 50
 
             # set prediction horizon
             ocp.solver_options.tf = T_f
