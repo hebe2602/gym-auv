@@ -11,6 +11,8 @@ import gym_auv.utils.geomutils as geom
 from gym_auv.objects.obstacles import LineObstacle
 from gym_auv.objects.path import Path
 
+from gym_auv.utils.safetyFilter import SafetyFilter
+
 def _odesolver45(f, y, h):
     """Calculate the next step of an IVP of a time-invariant ODE with a RHS
     described by f, with an order 4 approx. and an order 5 approx.
@@ -154,6 +156,7 @@ class Vessel():
         self._sensor_interval = max(1, int(1/self.config["sensor_frequency"]))
         self._observe_interval = max(1, int(1/self.config["observe_frequency"]))
         self._virtual_environment = None
+        self._use_safety_filter = False
 
         # Calculating sensor partitioning
         last_isector = -1
@@ -192,6 +195,7 @@ class Vessel():
 
         # Initializing vessel to initial position
         self.reset(init_state)
+
 
     @property
     def n_sensors(self) -> int:
@@ -261,6 +265,7 @@ class Vessel():
         """Array containg the angles of the center line of each sensor sector relative to the vessel heading."""
         return self._sector_angles
 
+
     def reset(self, init_state:np.ndarray) -> None:
         """
         Resets the vessel to the specified initial state.
@@ -292,6 +297,7 @@ class Vessel():
         self._perceive_counter = 0
         self._nearby_obstacles = []
 
+
     def step(self, action:list) -> None:
         """
         Simulates the vessel one step forward after applying the given action.
@@ -301,15 +307,35 @@ class Vessel():
         action : np.ndarray[thrust_input, torque_input]
         """
         self._input = np.array([self._thrust_surge(action[0]), self._moment_steer(action[1])])
+
+        
+        #Check if safety filter is activated
+        if self._use_safety_filter:
+            print("old_input", self._input)
+            self._input = self.safety_filter.filter(self._input, self._state)
+            print("new_input", self._input)
+
         w, q = _odesolver45(self._state_dot, self._state, self.config["t_step_size"])
         
         self._state = q
         self._state[2] = geom.princip(self._state[2])
 
+        #Update safety filter
+        if self._use_safety_filter:
+            self.safety_filter.update(self._state)
+
         self._prev_states = np.vstack([self._prev_states,self._state])
         self._prev_inputs = np.vstack([self._prev_inputs,self._input])
 
         self._step_counter += 1
+
+    def activate_safety_filter(self, env):
+        """
+        Initializes and activates a safety filter to be used in the vessel step function. 
+        """
+        self.safety_filter = SafetyFilter(env)
+        self._use_safety_filter = True
+
 
     def perceive(self, obstacles:list) -> (np.ndarray, np.ndarray):
         """
@@ -502,9 +528,9 @@ class Vessel():
         return state_dot
 
     def _thrust_surge(self, surge):
-        surge = np.clip(surge, -2, 2)
-        return surge#*self.config['thrust_max_auv']
+        surge = np.clip(surge, 0, 1)
+        return surge*self.config['thrust_max_auv']
 
     def _moment_steer(self, steer):
         steer = np.clip(steer, -1, 1)
-        return steer#*self.config['moment_max_auv']
+        return steer*self.config['moment_max_auv']

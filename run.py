@@ -32,7 +32,6 @@ from collections import deque
 from gym_auv.utils.radarCNN import RadarCNN, PerceptionNavigationExtractor
 
 
-from gym_auv.utils.safetyFilter import SafetyFilter
 
 speedups.enable()
 DIR_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -74,7 +73,7 @@ def make_mp_env(env_id, rank, envconfig, seed=0, pilot=None):
     return _init
 
 
-def play_scenario(env, recorded_env, args, agent=None, safetyFilter=None):
+def play_scenario(env, recorded_env, args, agent=None):
     # if args.video:
     #     print('Recording enabled')
     #     recorded_env = VecVideoRecorder(env, args.video_dir, record_video_trigger=lambda x: x == 0, 
@@ -150,6 +149,8 @@ def play_scenario(env, recorded_env, args, agent=None, safetyFilter=None):
     viewer.window.on_key_release = key_release
 
     env.reset()
+
+    env.vessel.activate_safety_filter(env)
     try:
         while True:
             t = time()
@@ -199,19 +200,7 @@ def play_scenario(env, recorded_env, args, agent=None, safetyFilter=None):
                     else:
                         a, _ = agent.predict(obs, deterministic=True)
 
-
-
-
-                if safetyFilter is not None:
-                    if a[0] == -1:
-                        a[0] = 0
-                    print("old_u", a)
-                    a = safetyFilter.filter(a,env.vessel._state)
-                    print("new_u", a)
-       
-                obs, r, done, info = env.step(a)
-
-                safetyFilter.update(env.vessel._state)        
+                obs, r, done, info = env.step(a)   
 
                 
                 # gail_observations.append(obs)
@@ -306,8 +295,7 @@ def main(args):
         )
         print(args.video_dir, args.video_name)
 
-        safetyFilter = SafetyFilter(env)
-        play_scenario(env, recorded_env, args, agent=agent, safetyFilter=safetyFilter)
+        play_scenario(env, recorded_env, args, agent=agent)
         recorded_env.env.close()
 
     elif (args.mode == 'enjoy'):

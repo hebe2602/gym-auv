@@ -50,7 +50,7 @@ class SafetyFilter:
             # the 'EXTERNAL' cost type can be used to define general cost terms
             # NOTE: This leads to additional (exact) hessian contributions when using GAUSS_NEWTON hessian.
             ocp.cost.cost_type_0 = 'LINEAR_LS'
-            u0 = np.array([0,0]).reshape(2,1)
+            u0 = np.array([0,0]) #.reshape(2,1)
 
             Vx_0 = np.zeros((ny,nx))
             ocp.cost.Vx_0 = Vx_0
