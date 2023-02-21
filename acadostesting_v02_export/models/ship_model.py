@@ -1,6 +1,6 @@
 import numpy as np
 from acados_template import AcadosModel
-from casadi import SX, vertcat, sin, cos
+from casadi import SX, vertcat, sin, cos, sqrt
 
 m = 23.8
 x_g = 0.046
@@ -62,7 +62,7 @@ def N(nu):
     return N
 
 
-def export_ship_model() -> AcadosModel:
+def export_ship_model(model_type = 'simplified') -> AcadosModel:
 
     model_name = 'ship_ode'
     
@@ -97,27 +97,14 @@ def export_ship_model() -> AcadosModel:
     F_u = SX.sym('F_u')
     F_r = SX.sym('F_r')
     F = vertcat(F_u,F_r)
-    U_L = SX.sym('U_L',(2,1))
-
-    #Dynamics
-    # C = vertcat(horzcat(0, 0, -33.8*v + 11.748*r),
-    #             horzcat(0, 0, 25.8*u),
-    #             horzcat(33.8*v - 11.748*r, -25.8*u, 0)
-    #             )
-
-    # R_phi = vertcat(horzcat(cos(phi),-sin(phi),0),
-    #             horzcat(sin(phi),cos(phi),0),
-    #             horzcat(0,0,1)
-    #             )
+    x_obs = SX.sym('x_obs')
+    y_obs = SX.sym('y_obs')
+    r_obs = SX.sym('r_obs')
+    state_obs = vertcat(x_obs,y_obs,r_obs)
+    origin_term_set = SX.sym('origin_term_set')
     
-    # print(R_phi)
-    # print(C)
-    # eta_expl = R_phi@nu
-    # eta_impl = eta_dot - eta_expl
-
+    #Dynamics
     # nu_expl = M_inv@(-C@nu - D@nu + B@F)
-    # nu_impl = nu_dot - nu_expl
-    #(-C@nu - D@nu + B@F) = 
 
     cos_phi = cos(phi)
     sin_phi = sin(phi)
@@ -129,15 +116,23 @@ def export_ship_model() -> AcadosModel:
     )
     
     eta_impl = eta_dot - eta_expl
-
-    nu_impl = vertcat(
-        (m-X_udot)*u_dot + (-33.8*v + 11.748*r)*r + 2*u - F_u,
-        (m - Y_vdot)*v_dot + (m*x_g - Y_rdot)*r_dot + 25.8*u*r + 7*v - 2.5425*r - 1.7244*F_r,
-        (m*x_g - N_vdot)*v_dot + (I_z - N_rdot)*r_dot + (33.8*v - 11.748*r)*u - 25.8*u*v - 2.5425*v + 1.422*r - F_r
-    )
+    if model_type == 'realistic':
+        nu_impl = vertcat(
+            (m-X_udot)*u_dot + (-33.8*v + 11.748*r)*r + 2*u - F_u,
+            (m - Y_vdot)*v_dot + (m*x_g - Y_rdot)*r_dot + 25.8*u*r + 7*v - 2.5425*r - 1.7244*F_r,
+            (m*x_g - N_vdot)*v_dot + (I_z - N_rdot)*r_dot + (33.8*v - 11.748*r)*u - 25.8*u*v - 2.5425*v + 1.422*r - F_r
+        )
+    elif model_type == 'simplified':
+        nu_impl = vertcat(
+            (m-X_udot)*u_dot + (-33.8*v + 11.748*r)*r -X_u*u - F_u,
+            (m - Y_vdot)*v_dot + (m*x_g - Y_rdot)*r_dot -Y_v*v + (m*u - Y_r)*r,
+            (m*x_g - N_vdot)*v_dot + (I_z - N_rdot)*r_dot -N_v*v + (m*x_g*u-N_r)*r - F_r
+        )
     
-
     f_impl = vertcat(eta_impl,nu_impl)
+
+    con_h_expr = sqrt((x - x_obs)**2 + (y - y_obs)**2)
+    con_h_expr_e = con_h_expr
 
     model = AcadosModel()
 
@@ -145,7 +140,9 @@ def export_ship_model() -> AcadosModel:
     model.x = state
     model.xdot = state_dot
     model.u = F
-    model.p = U_L
+    model.p = vertcat(state_obs)
+    #model.con_h_expr = con_h_expr
+    #model.con_h_expr_e = con_h_expr_e
     model.name = model_name
 
     return model

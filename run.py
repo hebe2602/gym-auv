@@ -32,7 +32,7 @@ from collections import deque
 from gym_auv.utils.radarCNN import RadarCNN, PerceptionNavigationExtractor
 
 
-from gym_auv.utils.safetyFilter import SafteyFilter
+from gym_auv.utils.safetyFilter import SafetyFilter
 
 speedups.enable()
 DIR_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -203,8 +203,10 @@ def play_scenario(env, recorded_env, args, agent=None, safetyFilter=None):
 
 
                 if safetyFilter is not None:
+                    if a[0] == -1:
+                        a[0] = 0
                     print("old_u", a)
-                    a = safetyFilter.filter(a)
+                    a = safetyFilter.filter(a,env.vessel._state)
                     print("new_u", a)
        
                 obs, r, done, info = env.step(a)
@@ -304,7 +306,7 @@ def main(args):
         )
         print(args.video_dir, args.video_name)
 
-        safetyFilter = SafteyFilter(env)
+        safetyFilter = SafetyFilter(env)
         play_scenario(env, recorded_env, args, agent=agent, safetyFilter=safetyFilter)
         recorded_env.env.close()
 

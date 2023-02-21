@@ -21,7 +21,7 @@ DEFAULT_CONFIG = {
     "min_path_progress": 0.99,                      # Minimum path progress before scenario is considered successful and the episode ended
     
     # ---- SIMULATION ---- #
-    "t_step_size": 1.0,                             # Length of simulation timestep [s]
+    "t_step_size": 0.5,                             # Length of simulation timestep [s]
     "sensor_frequency": 1.0,                        # Sensor execution frequency (0.0 = never execute, 1.0 = always execute)
     "observe_frequency": 1.0,                       # Frequency of using actual obstacles instead of virtual ones for detection
 
@@ -34,7 +34,7 @@ DEFAULT_CONFIG = {
     'render_distance': 300,                         # 3D rendering render distance [m]
     "sensing": True,                                # Whether rangerfinder sensors for perception should be activated
     "sensor_interval_load_obstacles": 25,           # Interval for loading nearby obstacles
-    "n_sensors_per_sector": 20,                     # Number of rangefinder sensors within each sector
+    "n_sensors_per_sector": 5,                     # Number of rangefinder sensors within each sector
     "n_sectors": 9,                                 # Number of sensor sectors
     "sector_partition_fun": sector_partition_fun,   # Function that returns corresponding sector for a given sensor index
     "sensor_rotation": False,                       # Whether to activate the sectors in a rotating pattern (for performance reasons)

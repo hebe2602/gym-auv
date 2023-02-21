@@ -502,9 +502,9 @@ class Vessel():
         return state_dot
 
     def _thrust_surge(self, surge):
-        surge = np.clip(surge, 0, 1)
-        return surge*self.config['thrust_max_auv']
+        surge = np.clip(surge, -2, 2)
+        return surge#*self.config['thrust_max_auv']
 
     def _moment_steer(self, steer):
         steer = np.clip(steer, -1, 1)
-        return steer*self.config['moment_max_auv']
+        return steer#*self.config['moment_max_auv']
