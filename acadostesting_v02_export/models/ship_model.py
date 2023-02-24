@@ -1,6 +1,6 @@
 import numpy as np
 from acados_template import AcadosModel
-from casadi import SX, vertcat, sin, cos, sqrt
+from casadi import SX, vertcat, sin, cos, sqrt, fmod
 
 m = 23.8
 x_g = 0.046
@@ -110,11 +110,14 @@ def export_ship_model(model_type = 'simplified') -> AcadosModel:
     x_obs = SX.sym('x_obs')
     y_obs = SX.sym('y_obs')
     r_obs = SX.sym('r_obs')
-    state_obs = vertcat(x_obs,y_obs,r_obs)
+    state_obs = vertcat(x_obs,y_obs) #,r_obs)
     origin_term_set = SX.sym('origin_term_set')
     
     #Dynamics
     # nu_expl = M_inv@(-C@nu - D@nu + B@F)
+    def princip(angle):
+        return (fmod((angle + np.pi),(2*np.pi))) - np.pi
+
 
     cos_phi = cos(phi)
     sin_phi = sin(phi)
@@ -162,7 +165,7 @@ def export_ship_model(model_type = 'simplified') -> AcadosModel:
     #     Y_v*v - (m*u - Y_r)*r,
     #     N_v*v - (m*x_g*u-N_r)*r + F_r
     # )
-
+    eta_expl[2] = princip(eta_expl[2])
     f_impl = vertcat(eta_impl,nu_impl)
     f_expl = vertcat(eta_expl,nu_expl)
 

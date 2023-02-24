@@ -28,22 +28,21 @@ class SafetyFilter:
             Initialize the filter with the ship dynamics model, constraints and solver options.
             """
 
-            # create ocp object to formulate the OCP
             ocp = AcadosOcp()
 
             # set model
-            model = export_ship_model(model_type='simplified')
+            model = export_ship_model()
             ocp.model = model
 
-            self._T_s = 0.5
+            T_s = 0.5
             nx = model.x.size()[0]
             nu = model.u.size()[0]
             ny = nu
-            self._N = 30
-            T_f = self._N*self._T_s
+            N = 50
+            T_f = N*T_s
 
             # set dimensions
-            ocp.dims.N = self._N
+            ocp.dims.N = N
 
 
             # set cost
@@ -51,6 +50,7 @@ class SafetyFilter:
             # NOTE: This leads to additional (exact) hessian contributions when using GAUSS_NEWTON hessian.
             ocp.cost.cost_type_0 = 'LINEAR_LS'
             u0 = np.array([0,0]) #.reshape(2,1)
+            ocp.parameter_values = u0
 
             Vx_0 = np.zeros((ny,nx))
             ocp.cost.Vx_0 = Vx_0
@@ -60,72 +60,75 @@ class SafetyFilter:
             F_u_max = 2.0
             F_r_max = 0.15
 
-            W_0 = 1e-1*np.eye(ny)
+            W_0 = np.eye(ny)
             W_0[-1,-1] = F_u_max/F_r_max
             ocp.cost.W_0 = W_0
             
             yref_0 = u0
             ocp.cost.yref_0 = yref_0
+
+            ocp.cost.Zl = 0*np.ones((nx-1,))
+            ocp.cost.Zu = 0*np.ones((nx-1,))
+            ocp.cost.zl = 100*np.ones((nx-1,))
+            ocp.cost.zu = 100*np.ones((nx-1,))
+            ocp.cost.Zl_e = 0*np.ones((nx-1,))
+            ocp.cost.Zu_e = 0*np.ones((nx-1,))
+            ocp.cost.zl_e = 100*np.ones((nx-1,))
+            ocp.cost.zu_e = 100*np.ones((nx-1,))
+            # set constraints
+
+            xy_max = 100.0
+            uv_max = 2.0
+            r_max = 0.2
+
+            ocp.constraints.lbx = np.array([-xy_max,-xy_max,-uv_max,-uv_max,-r_max])
+            ocp.constraints.ubx = np.array([+xy_max,+xy_max,+uv_max,+uv_max,+r_max])
+            ocp.constraints.idxbx = np.array([0,1,3,4,5])
+            ocp.constraints.lbx_e = 0.25*np.array([-xy_max,-xy_max,-uv_max,-uv_max,-r_max])
+            ocp.constraints.ubx_e = 0.25*np.array([+xy_max,+xy_max,+uv_max,+uv_max,+r_max])
+            ocp.constraints.idxbx_e = np.array([0,1,3,4,5])
+            ocp.constraints.idxsbx = np.array([0,1,2,3,4])
+            ocp.constraints.idxsbx_e = np.array([0,1,2,3,4])
             
-            # ocp.cost.Zl = 100*np.ones((1,))
-            # ocp.cost.Zu = 0*np.ones((1,))
-            # ocp.cost.zl = 0*np.ones((1,))
-            # ocp.cost.zu = 0*np.ones((1,))
-            # # set constraints
-            x_max = 20.0
-            y_max = 20.0
-            u_max = 2.0
-            u_min = -2.0
-            v_max = 2.0
-            v_min = -2.0
+            # (x - x_obj)**2 + (y - y_obj)**2 >= radius_obj
 
-            ocp.constraints.lbx = np.array([-x_max,-y_max,u_min,v_min])
-            ocp.constraints.ubx = np.array([+x_max,+y_max,+u_max,+v_max])
-            ocp.constraints.idxbx = np.array([0,1,3,4])
-            ocp.constraints.lbx_e = 0.5*np.array([-x_max,-y_max,u_min,v_min])
-            ocp.constraints.ubx_e = 0.5*np.array([+x_max,+y_max,+u_max,+v_max])
-            ocp.constraints.idxbx_e = np.array([0,1,3,4])
-            #ocp.constraints.idxsbx_e = np.array([0,1,3,4])
-
-
-            ocp.constraints.lbu = np.array([-F_u_max,-F_r_max])
+            ocp.constraints.lbu = np.array([0,-F_r_max])
             ocp.constraints.ubu = np.array([+F_u_max,+F_r_max])
             ocp.constraints.idxbu = np.array([0,1])
 
+
+            # x = model.x
+            # obst = env.obstacles[0]
+            # pos = obst.position
+            # r = obst.radius
+
+            # circle = (x[0] - pos[0])**2 + (x[1] - pos[1])**2 - r**2
+            
+            # ocp.constraints.lh = np.array([0.0])
+            # ocp.constraints.uh = np.array([100000.0])
+            # ocp.model.con_h_expr = circle
+            # ocp.constraints.lh_e = ocp.constraints.lh
+            # ocp.constraints.uh_e = ocp.constraints.uh 
+
+            # ocp.model.con_h_expr_e = ocp.model.con_h_expr
+
+
             ocp.constraints.x0 = np.array(env.vessel._state)
             #ocp.constraints.x0 = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
-
-            # obstacle constraint
-            obst = env.obstacles[0]
-            r_obs = obst.radius + 5
-            ocp.parameter_values = np.array([obst.position[0],obst.position[1],obst.radius])
-      
-            # ocp.model.con_h_expr = log((state[0] - pos[0])**2 + (state[1] - pos[1])**2)
-            # ocp.constraints.lh = np.array([-r_obs])
-            # ocp.constraints.uh = np.array([9999])
-
-            # ocp.constraints.lh_e = ocp.constraints.lh
-            # ocp.constraints.uh_e = ocp.constraints.uh
-
-            #ocp.constraints.idxsh = np.array([0])
-
             # set options
             ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM' # FULL_CONDENSING_QPOASES
             # PARTIAL_CONDENSING_HPIPM, FULL_CONDENSING_QPOASES, FULL_CONDENSING_HPIPM,
             # PARTIAL_CONDENSING_QPDUNES, PARTIAL_CONDENSING_OSQP, FULL_CONDENSING_DAQP
             ocp.solver_options.hessian_approx = 'GAUSS_NEWTON' # 'GAUSS_NEWTON', 'EXACT'
-            ocp.solver_options.integrator_type = 'ERK'
+            ocp.solver_options.integrator_type = 'IRK'
             # ocp.solver_options.print_level = 1
-            ocp.solver_options.nlp_solver_type = 'SQP' # SQP_RTI, SQP
+            ocp.solver_options.nlp_solver_type = 'SQP_RTI' # SQP_RTI, SQP
             ocp.solver_options.sim_method_num_stages = 4
             ocp.solver_options.sim_method_num_steps = 3
             ocp.solver_options.sim_method_newton_iter = 3
-            ocp.solver_options.nlp_solver_tol_eq = 1e-2
-            ocp.solver_options.nlp_solver_tol_stat = 1e-2
             ocp.solver_options.nlp_solver_step_length = 1.0
-            ocp.solver_options.qp_solver_iter_max = 50
-
+            ocp.solver_options.nlp_solver_tol_eq = 1e-6
+            ocp.solver_options.nlp_solver_tol_stat = 1e-6
             # set prediction horizon
             ocp.solver_options.tf = T_f
 
