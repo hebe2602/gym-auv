@@ -45,13 +45,13 @@ def main():
     F_r_max = 0.5
 
     xy_max = 20.0
-    uvr_max = 2.0
+    uv_max = 2.0
 
-    ocp.constraints.lbx = np.array([-xy_max,-xy_max,-uvr_max,-uvr_max,-uvr_max])
-    ocp.constraints.ubx = np.array([+xy_max,+xy_max,+uvr_max,+uvr_max,+uvr_max])
+    ocp.constraints.lbx = np.array([-xy_max,-xy_max,-uv_max,-uv_max,-uv_max])
+    ocp.constraints.ubx = np.array([+xy_max,+xy_max,+uv_max,+uv_max,+uv_max])
     ocp.constraints.idxbx = np.array([0,1,3,4,5])
-    ocp.constraints.lbx_e = 0.25*np.array([-xy_max,-xy_max,-uvr_max,-uvr_max,-uvr_max])
-    ocp.constraints.ubx_e = 0.25*np.array([+xy_max,+xy_max,+uvr_max,+uvr_max,+uvr_max])
+    ocp.constraints.lbx_e = 0.25*np.array([-xy_max,-xy_max,-uv_max,-uv_max,-uv_max])
+    ocp.constraints.ubx_e = 0.25*np.array([+xy_max,+xy_max,+uv_max,+uv_max,+uv_max])
     ocp.constraints.idxbx_e = np.array([0,1,3,4,5])
     #ocp.constraints.idxsbx_e = np.array([0,1,3,4,5])
 

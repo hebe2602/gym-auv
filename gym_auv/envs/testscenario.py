@@ -17,7 +17,7 @@ deg2rad = math.pi/180
 
 class TestScenario0(BaseEnvironment):
     def _generate(self):
-        self.path = Path([[0, 0, 50, 50], [0, 500, 600, 1000]])
+        self.path = Path([[0, 100], [0, 0]])
 
         init_state = self.path(0)
         init_angle = self.path.get_direction(0)
@@ -27,10 +27,10 @@ class TestScenario0(BaseEnvironment):
         self.path_prog_hist = np.array([prog])
         self.max_path_prog = prog
 
-        obst_arclength = 50
-        for o in range(9):
-            obst_radius = 20
-            obst_arclength += obst_radius*2 + 170
+        obst_arclength = 5
+        for o in range(1):
+            obst_radius = 10
+            obst_arclength += obst_radius*5
             obst_position = self.path(obst_arclength)
 
             obst_displacement = np.array([obst_radius*(-1)**(o+1), obst_radius])
