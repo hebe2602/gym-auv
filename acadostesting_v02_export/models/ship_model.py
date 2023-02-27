@@ -110,8 +110,8 @@ def export_ship_model(model_type = 'simplified') -> AcadosModel:
     x_obs = SX.sym('x_obs')
     y_obs = SX.sym('y_obs')
     r_obs = SX.sym('r_obs')
-    state_obs = vertcat(x_obs,y_obs) #,r_obs)
-    origin_term_set = SX.sym('origin_term_set')
+    state_obs = vertcat(x_obs,y_obs,r_obs)
+   
     
     #Dynamics
     # nu_expl = M_inv@(-C@nu - D@nu + B@F)
@@ -169,7 +169,7 @@ def export_ship_model(model_type = 'simplified') -> AcadosModel:
     f_impl = vertcat(eta_impl,nu_impl)
     f_expl = vertcat(eta_expl,nu_expl)
 
-    con_h_expr = sqrt((x - x_obs)**2 + (y - y_obs)**2)
+    con_h_expr = sqrt((x - x_obs)**2 + (y - y_obs)**2) - r_obs - 5.0
     con_h_expr_e = con_h_expr
 
     model = AcadosModel()
@@ -180,8 +180,8 @@ def export_ship_model(model_type = 'simplified') -> AcadosModel:
     model.xdot = state_dot
     model.u = F
     model.p = vertcat(state_obs)
-    #model.con_h_expr = con_h_expr
-    #model.con_h_expr_e = con_h_expr_e
+    model.con_h_expr = con_h_expr
+    model.con_h_expr_e = con_h_expr_e
     model.name = model_name
 
     return model

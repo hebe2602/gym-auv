@@ -22,6 +22,7 @@ import torch as th
 import gym_auv.utils.geomutils as geom
 from gym_auv.objects.obstacles import CircularObstacle, PolygonObstacle, VesselObstacle
 from gym_auv.objects.vessel import _feasibility_pooling
+from shapely.geometry.polygon import Polygon
 
 if "Apple" in sys.version:
     if 'DYLD_FALLBACK_LIBRARY_PATH' in os.environ:
@@ -478,6 +479,28 @@ def _render_obstacles(env):
         elif isinstance(obst, VesselObstacle):
             env._viewer2d.draw_shape(list(obst.boundary.exterior.coords), color=c)
 
+#create square safety zone for rendenring
+
+
+def _render_safety_zone(env):
+
+    #render safety zone
+    if isinstance(env.vessel.safety_zone, Polygon): 
+        env._viewer2d.draw_shape(list(env.vessel.safety_zone.exterior.coords), color=(0.3, 0.8, 0.3, 0.2))
+    
+    #render terminal set
+    if isinstance(env.vessel.terminal_set, Polygon):
+        env._viewer2d.draw_shape(list(env.vessel.terminal_set.exterior.coords), color=(0.8, 0.3, 0.8, 0.2))
+
+    #render safe trajectory
+    env._viewer2d.draw_polyline(env.vessel.safe_trajectory[:,0:2], linewidth=2, color=(0.8, 0.3, 0.3, 0.8))
+
+
+
+
+
+
+        
 
 def _render_tiles(env, win):
     global env_bg
@@ -577,6 +600,7 @@ def render_env(env, mode):
         _render_vessel(env)
         _render_tiles(env, win)
         _render_obstacles(env)
+        _render_safety_zone(env)
         #_render_feasible_distances(env)
         if env.path is not None:
             _render_progress(env)
