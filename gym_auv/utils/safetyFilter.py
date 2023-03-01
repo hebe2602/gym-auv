@@ -24,12 +24,13 @@ class SafetyFilter:
       """
       Saftey filter class - sets up a predictive safety filter using the acados solver.
       """
-      def __init__(self, env):
+      def __init__(self, env, rank):
             """
             Initialize the filter with the ship dynamics model, constraints and solver options.
             """
 
             ocp = AcadosOcp()
+            ocp.code_export_directory = 'c_generated_code/c_generated_code_' + str(rank)
             self.env = env
             self.diff_u = 0.0
 
@@ -47,6 +48,7 @@ class SafetyFilter:
             # set dimensions
             ocp.dims.N = self.N
 
+            
 
             # set cost
             ocp.cost.cost_type_0 = 'LINEAR_LS'
@@ -162,7 +164,10 @@ class SafetyFilter:
             # set prediction horizon
             ocp.solver_options.tf = T_f
 
-            self.ocp_solver = AcadosOcpSolver(ocp, json_file = 'acados_ocp.json')
+            json_file = 'acados_ocp/acados_ocp_' + str(rank) + '.json'
+
+            self.ocp_solver = AcadosOcpSolver(ocp, json_file = json_file)
+            
 
       
       def filter(self, u, state):

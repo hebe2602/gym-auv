@@ -37,8 +37,7 @@ class TestScenario0(BaseEnvironment):
             obst_displacement = np.array([obst_radius*(-1)**(o+1), obst_radius])
             self.obstacles.append(CircularObstacle(obst_position + obst_displacement, obst_radius))
         
-        #self.vessel.activate_safety_filter(self)
-        #self._rewarder_class = SafetyColavRewarder
+        self._rewarder_class = SafetyColavRewarder
 
 
 

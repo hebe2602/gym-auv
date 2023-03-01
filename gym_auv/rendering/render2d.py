@@ -595,7 +595,8 @@ def render_env(env, mode):
         _render_vessel(env)
         _render_tiles(env, win)
         _render_obstacles(env)
-        #_render_safety_zone(env)
+        if env.vessel._use_safety_filter:
+            _render_safety_zone(env)
         #_render_feasible_distances(env)
         if env.path is not None:
             _render_progress(env)

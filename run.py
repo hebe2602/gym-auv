@@ -68,6 +68,9 @@ def make_mp_env(env_id, rank, envconfig, seed=0, pilot=None):
     def _init():
         env = create_env(env_id, envconfig, pilot=pilot)
         env.seed(seed + rank)
+
+        #activate safety filter with rank
+        env.vessel.activate_safety_filter(env, rank)
         return env
     set_random_seed(seed)
     return _init
@@ -150,7 +153,7 @@ def play_scenario(env, recorded_env, args, agent=None):
 
     env.reset()
 
-    env.vessel.activate_safety_filter(env)
+    env.vessel.activate_safety_filter(env, 0)
     try:
         while True:
             t = time()
@@ -266,7 +269,7 @@ def main(args):
     envconfig.update(custom_envconfig)
 
     #NUM_CPU = multiprocessing.cpu_count()
-    NUM_CPU = 1 #8
+    NUM_CPU = 1
     #torch.set_num_threads(multiprocessing.cpu_count()//4)
     #print("Pytorch using {} threads".format(torch.get_num_threads()))
 

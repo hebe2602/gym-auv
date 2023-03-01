@@ -468,16 +468,17 @@ class SafetyColavRewarder(BaseRewarder):
 
 
         # Penalizing safety violations
-        safety_violation_penalty = -self.params['gamme_PSF']*(abs(self._vessel.safety_filter.diff_u[0]/self._vessel.config['thrust_max_auv']) + \
+        if self._vessel._use_safety_filter:
+            safety_violation_penalty = -self.params['gamme_PSF']*(abs(self._vessel.safety_filter.diff_u[0]/self._vessel.config['thrust_max_auv']) + \
                                     abs(self._vessel.safety_filter.diff_u[1]/self._vessel.config['moment_max_auv']))
-
-            
+        else:
+            safety_violation_penalty = 0
+    
 
         # Calculating total reward
         reward = path_reward + \
                 0.05 * closeness_reward + \
                 safety_violation_penalty - \
                 living_penalty
-        print("reward: ", reward)
 
         return reward
