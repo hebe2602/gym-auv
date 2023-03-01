@@ -34,8 +34,8 @@ DEFAULT_CONFIG = {
     'render_distance': 300,                         # 3D rendering render distance [m]
     "sensing": True,                                # Whether rangerfinder sensors for perception should be activated
     "sensor_interval_load_obstacles": 25,           # Interval for loading nearby obstacles
-    "n_sensors_per_sector": 5,                     # Number of rangefinder sensors within each sector
-    "n_sectors": 9,                                 # Number of sensor sectors
+    "n_sensors_per_sector": 20,                     # Number of rangefinder sensors within each sector
+    "n_sectors": 9,                                  # Number of sensor sectors
     "sector_partition_fun": sector_partition_fun,   # Function that returns corresponding sector for a given sensor index
     "sensor_rotation": False,                       # Whether to activate the sectors in a rotating pattern (for performance reasons)
     "sensor_range": 150.0,                          # Range of rangefinder sensors [m]

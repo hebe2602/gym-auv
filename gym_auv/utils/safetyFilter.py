@@ -31,16 +31,17 @@ class SafetyFilter:
 
             ocp = AcadosOcp()
             self.env = env
+            self.diff_u = 0.0
 
             # set model
             model = export_ship_model()
             ocp.model = model
 
+            self.N = 50
             T_s = 0.5
             nx = model.x.size()[0]
             nu = model.u.size()[0]
             ny = nu
-            self.N = 50
             T_f = self.N*T_s
 
             # set dimensions
@@ -98,8 +99,8 @@ class SafetyFilter:
             #ocp.constraints.lbx_e = np.array([goal[0]-xy_max_goal,goal[1]-xy_max_goal,-uv_max,-uv_max,-r_max])
             #ocp.constraints.ubx_e = np.array([goal[0]+xy_max_goal,goal[1]+xy_max_goal,+uv_max,+uv_max,+r_max])
 
-            ocp.constraints.lbx_e = 0.50*np.array([-xy_max,-xy_max,-uv_max,-uv_max,-r_max])
-            ocp.constraints.ubx_e = 0.50*np.array([+xy_max,+xy_max,+uv_max,+uv_max,+r_max])
+            ocp.constraints.lbx_e = np.array([-xy_max,-xy_max,-uv_max,-uv_max,-r_max])
+            ocp.constraints.ubx_e = np.array([+xy_max,+xy_max,+uv_max,+uv_max,+r_max])
             ocp.constraints.idxbx_e = np.array([0,1,3,4,5])
             ocp.constraints.idxsbx = np.array([0,1,2,3,4])
             ocp.constraints.idxsbx_e = np.array([0,1,2,3,4])
@@ -186,23 +187,17 @@ class SafetyFilter:
                   for i in range(self.N):
                        print(i, ': x: ', self.ocp_solver.get(i,'x'), ', u: ', self.ocp_solver.get(i,'u'))
                   raise Exception(f'acados returned status {status}.')
-            
-            return self.ocp_solver.get(0, "u")
+            new_u = self.ocp_solver.get(0, "u")
+
+            self.diff_u = new_u - u
+            return new_u
 
       def update(self, state):
             """
             Update the current state. 
             """
-            # uv_max = 2.0
-            # xy_max_e = 4
-            # N = 50
             self.ocp_solver.set(0, "lbx", state)
             self.ocp_solver.set(0, "ubx", state)
-            # self.ocp_solver.constraints_set(N,'lbx',np.array([state[0] + 5 - xy_max_e, state[1] + 5 - xy_max_e, -uv_max, -uv_max]))
-            # self.ocp_solver.constraints_set(N,'ubx',np.array([state[0] + 5 + xy_max_e, state[1] + 5 + xy_max_e, +uv_max, +uv_max]))
-            # st_curr = self.ocp_solver.get(0,'x')
-            # x_curr = st_curr[0]
-            # y_curr = st_curr[1]
-            #print('Dist to obs: ', np.sqrt((x_curr-env.obstacles[0].position[0])**2 + (y_curr-env.obstacles[0].position[1])**2))
+
 
 

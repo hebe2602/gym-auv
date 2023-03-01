@@ -266,7 +266,7 @@ def main(args):
     envconfig.update(custom_envconfig)
 
     #NUM_CPU = multiprocessing.cpu_count()
-    NUM_CPU = 8
+    NUM_CPU = 1 #8
     #torch.set_num_threads(multiprocessing.cpu_count()//4)
     #print("Pytorch using {} threads".format(torch.get_num_threads()))
 
@@ -365,6 +365,8 @@ def main(args):
         if (args.agent is not None):
             agent = model.load(args.agent)
             agent.set_env(vec_env)
+
+
         else:
             if (model == PPO):
                 if args.recurrent:
@@ -633,7 +635,7 @@ def main(args):
 
         ### CALLBACKS ###
         # Things we want to do: calculate statistics, say 1000 times during training.
-        total_timesteps = 10000000
+        total_timesteps = 1000000 #10000000
         save_stats_freq = total_timesteps // 1000  # Save stats 1000 times during training (EveryNTimesteps)
         save_agent_freq = total_timesteps // 100   # Save the agent 100 times throughout training
         record_agent_freq = total_timesteps // 10  # Evaluate and record 10 times during training (EvalCallback)
@@ -741,18 +743,21 @@ def main(args):
                 #        )
                 if self.num_timesteps % self.record_agent_freq == 0:
                     agent_filepath = os.path.join(self.log_dir, str(self.num_timesteps) + '.pkl')
-                    cmd = 'python run.py enjoy {} --agent "{}" --video-dir "{}" --video-name "{}" --recording-length {} --algo {} --envconfig {}{}'.format(
-                        args.env, agent_filepath, video_folder, args.env + '-' + str(self.num_timesteps),
-                        recording_length, args.algo, envconfig_string,
-                        ' --recurrent' if args.recurrent else ''
-                    )
-                    subprocess.Popen(cmd)
+                    # cmd = 'python run.py enjoy {} --agent "{}" --video-dir "{}" --video-name "{}" --recording-length {} --algo {} --envconfig {}{}'.format(
+                    #     args.env, agent_filepath, video_folder, args.env + '-' + str(self.num_timesteps),
+                    #     recording_length, args.algo, envconfig_string,
+                    #     ' --recurrent' if args.recurrent else ''
+                    # )
+                    cmd = 'python run.py enjoy {} --agent "{}"'.format(
+                        args.env, agent_filepath)
+                    subprocess.Popen(cmd, shell=True)
 
                 return True
 
 
         callback = CollectStatisticsCallback(env=vec_env, total_timesteps=total_timesteps, save_stats_freq=save_stats_freq,
                                              record_agent_freq=record_agent_freq, log_dir=agent_folder, verbose=1)
+
 
         agent.learn(
             total_timesteps=total_timesteps,
@@ -785,8 +790,8 @@ def main(args):
 
         else:
             env = create_env(env_id, envconfig, test_mode=True, pilot=args.pilot)
-            with open(os.path.join(figure_folder, 'config.json'), 'w') as f:
-                json.dump(env.config, f)
+            #with open(os.path.join(figure_folder, 'config.json'), 'w') as f:
+                #json.dump(env.config, f)
 
             if args.mode == 'policyplot':
                 gym_auv.reporting.plot_actions(env, agent, fig_dir=figure_folder)

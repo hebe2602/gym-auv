@@ -7,6 +7,7 @@ from gym_auv.objects.vessel import Vessel
 from gym_auv.objects.path import RandomCurveThroughOrigin, Path
 from gym_auv.objects.obstacles import CircularObstacle, VesselObstacle
 from gym_auv.environment import BaseEnvironment
+from gym_auv.objects.rewarder import SafetyColavRewarder
 
 import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -35,6 +36,9 @@ class TestScenario0(BaseEnvironment):
 
             obst_displacement = np.array([obst_radius*(-1)**(o+1), obst_radius])
             self.obstacles.append(CircularObstacle(obst_position + obst_displacement, obst_radius))
+        
+        #self.vessel.activate_safety_filter(self)
+        #self._rewarder_class = SafetyColavRewarder
 
 
 
