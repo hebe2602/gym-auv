@@ -16,7 +16,7 @@ def sector_partition_fun(env, isensor, c=0.1):
 DEFAULT_CONFIG = {
     # ---- EPISODE ---- #
     "min_cumulative_reward": -2000,                 # Minimum cumulative reward received before episode ends
-    "max_timesteps": 10000,                         # Maximum amount of timesteps before episode ends
+    "max_timesteps": 2000, #10000,                         # Maximum amount of timesteps before episode ends
     "min_goal_distance": 5,                         # Minimum aboslute distance to the goal position before episode ends
     "min_path_progress": 0.99,                      # Minimum path progress before scenario is considered successful and the episode ended
     
@@ -153,7 +153,14 @@ SCENARIOS = {
         'entry_point': 'gym_auv.envs:Env4',
         'config': MOVING_CONFIG
     },
+
+    ###### SAFETY FILTER ENVS #####
+    'RandomScenario-v0': {
+        'entry_point': 'gym_auv.envs:RandomScenario',
+        'config': MOVING_CONFIG
+    },
 }
+
 
 for scenario in SCENARIOS:
     register(

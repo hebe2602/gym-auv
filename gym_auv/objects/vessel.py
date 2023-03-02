@@ -310,10 +310,11 @@ class Vessel():
 
         
         #Check if safety filter is activated
+
         if self._use_safety_filter:
-            print("old_input", self._input)
+            #print("old_input", self._input)
             self._input = self.safety_filter.filter(self._input, self._state)
-            print("new_input", self._input)
+            #print("new_input", self._input)
 
         w, q = _odesolver45(self._state_dot, self._state, self.config["t_step_size"])
         
@@ -333,6 +334,7 @@ class Vessel():
         """
         Initializes and activates a safety filter to be used in the vessel step function. 
         """
+        self.safety_filter_rank = rank
         self.safety_filter = SafetyFilter(env, rank)
         self._use_safety_filter = True
 

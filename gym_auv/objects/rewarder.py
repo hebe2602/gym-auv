@@ -414,7 +414,7 @@ class SafetyColavRewarder(BaseRewarder):
         self.params['collision'] = -1000.0
         self.params['lambda'] = 0.5  # _sample_lambda(scale=0.2)
         self.params['eta'] = 0  # _sample_eta()
-        self.params['gamme_PSF'] = 1  # _sample_eta()
+        self.params['gamme_PSF'] = 10  # _sample_eta()
 
     N_INSIGHTS = 0
 
@@ -470,9 +470,12 @@ class SafetyColavRewarder(BaseRewarder):
         # Penalizing safety violations
         if self._vessel._use_safety_filter:
             safety_violation_penalty = -self.params['gamme_PSF']*(abs(self._vessel.safety_filter.diff_u[0]/self._vessel.config['thrust_max_auv']) + \
-                                    abs(self._vessel.safety_filter.diff_u[1]/self._vessel.config['moment_max_auv']))
+                                   abs(self._vessel.safety_filter.diff_u[1]/self._vessel.config['moment_max_auv']))
+            #print("Safety violation", safety_violation_penalty)
+            #safety_violation_penalty = 0
         else:
             safety_violation_penalty = 0
+            #print("No safety filter used")
     
 
         # Calculating total reward

@@ -70,7 +70,7 @@ def make_mp_env(env_id, rank, envconfig, seed=0, pilot=None):
         env.seed(seed + rank)
 
         #activate safety filter with rank
-        env.vessel.activate_safety_filter(env, rank)
+        #env.vessel.activate_safety_filter(env, rank)
         return env
     set_random_seed(seed)
     return _init
@@ -269,7 +269,7 @@ def main(args):
     envconfig.update(custom_envconfig)
 
     #NUM_CPU = multiprocessing.cpu_count()
-    NUM_CPU = 1
+    NUM_CPU = 8
     #torch.set_num_threads(multiprocessing.cpu_count()//4)
     #print("Pytorch using {} threads".format(torch.get_num_threads()))
 
@@ -726,12 +726,12 @@ def main(args):
                 #            self.report.history.append(env_histories[env_idx][episode])
 
 
-                #if self.num_timesteps % self.save_stats_freq == 0 and len(self.report.history) > 1:
-                #   self.report.last_episode = self.training_env.get_attr('last_episode')[0]
-                #    self.report.obstacles = self.training_env.get_attr('obstacles')[0]
-                #    self.report.episode = self.n_episodes
-                #
-                #    gym_auv.reporting.report(self.report, report_dir=figure_folder)
+                # if self.num_timesteps % self.save_stats_freq == 0 and len(self.report.history) > 1:
+                #     self.report.last_episode = self.training_env.get_attr('last_episode')[0]
+                #     self.report.obstacles = self.training_env.get_attr('obstacles')[0]
+                #     self.report.episode = self.n_episodes
+                
+                #     gym_auv.reporting.report(self.report, report_dir=figure_folder)
 
                 if self.num_timesteps % self.save_agent_freq == 0:
                     print("Saving agent after", self.num_timesteps, "timesteps")
@@ -760,7 +760,6 @@ def main(args):
 
         callback = CollectStatisticsCallback(env=vec_env, total_timesteps=total_timesteps, save_stats_freq=save_stats_freq,
                                              record_agent_freq=record_agent_freq, log_dir=agent_folder, verbose=1)
-
 
         agent.learn(
             total_timesteps=total_timesteps,

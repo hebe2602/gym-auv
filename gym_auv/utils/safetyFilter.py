@@ -178,12 +178,13 @@ class SafetyFilter:
             """      
 
             self.ocp_solver.cost_set(0,"yref",u)
-            print('Current state: ', state)
-            curr_pred = self.ocp_solver.get(1,'x')
-            print('Diff between current state and PSF prediction: ', state - curr_pred)
+
+            # print('Current state: ', state)
+            # curr_pred = self.ocp_solver.get(1,'x')
+            # print('Diff between current state and PSF prediction: ', state - curr_pred)
 
             status = self.ocp_solver.solve()
-            self.ocp_solver.print_statistics() # encapsulates: stat = ocp_solver.get_stats("statistics")
+            #self.ocp_solver.print_statistics() # encapsulates: stat = ocp_solver.get_stats("statistics")
 
             for j in range(self.N+1):
                   self.env.vessel.safe_trajectory[j,:] = self.ocp_solver.get(j,'x')
@@ -192,8 +193,8 @@ class SafetyFilter:
                   for i in range(self.N):
                        print(i, ': x: ', self.ocp_solver.get(i,'x'), ', u: ', self.ocp_solver.get(i,'u'))
                   raise Exception(f'acados returned status {status}.')
-            new_u = self.ocp_solver.get(0, "u")
 
+            new_u = self.ocp_solver.get(0, "u")
             self.diff_u = new_u - u
             return new_u
 
