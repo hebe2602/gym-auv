@@ -8,3 +8,4 @@ acados_ocp.json
 *.png
 *.pdf
 *.pyc
+logs/play_results/report.txt
