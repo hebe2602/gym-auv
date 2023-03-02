@@ -70,7 +70,7 @@ def make_mp_env(env_id, rank, envconfig, seed=0, pilot=None):
         env.seed(seed + rank)
 
         #activate safety filter with rank
-        #env.vessel.activate_safety_filter(env, rank)
+        env.vessel.activate_safety_filter(env, rank)
         return env
     set_random_seed(seed)
     return _init
@@ -733,6 +733,7 @@ def main(args):
                 
                 #     gym_auv.reporting.report(self.report, report_dir=figure_folder)
 
+
                 if self.num_timesteps % self.save_agent_freq == 0:
                     print("Saving agent after", self.num_timesteps, "timesteps")
                     agent_filepath = os.path.join(self.log_dir, str(self.num_timesteps) + '.pkl')
@@ -895,8 +896,8 @@ def main(args):
             # Thomas: uncomment after fixing logging to HDF5-files in training
             gym_auv.reporting.report(env, report_dir=report_dir, lastn=100)
 
-            #gym_auv.reporting.plot_trajectory(env, fig_dir=scenario_folder, fig_prefix=(args.env + '_' + id))
-            #env.save(os.path.join(scenario_folder, id))
+            # gym_auv.reporting.plot_trajectory(env, fig_dir=scenario_folder, fig_prefix=(args.env + '_' + id))
+            # env.save(os.path.join(scenario_folder, id))
 
             return copy.deepcopy(env.last_episode)
 

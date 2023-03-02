@@ -33,9 +33,10 @@ class SafetyFilter:
             ocp.code_export_directory = 'c_generated_code/c_generated_code_' + str(rank)
             self.env = env
             self.diff_u = 0.0
+            n_obstacles = env.n_obstacles
 
             # set model
-            model = export_ship_model()
+            model = export_ship_model(n_obstacles=n_obstacles)
             ocp.model = model
 
             self.N = 50
@@ -70,14 +71,15 @@ class SafetyFilter:
             ocp.cost.yref_0 = yref_0
 
             #set slack variables cost
-            ocp.cost.Zl = 0*np.ones((nx,))
-            ocp.cost.Zu = 0*np.ones((nx,))
-            ocp.cost.zl = 100*np.ones((nx,))
-            ocp.cost.zu = 100*np.ones((nx,))
-            ocp.cost.Zl_e = 0*np.ones((nx,))
-            ocp.cost.Zu_e = 0*np.ones((nx,))
-            ocp.cost.zl_e = 100*np.ones((nx,))
-            ocp.cost.zu_e = 100*np.ones((nx,))
+            nz = nx + (n_obstacles - 1)
+            ocp.cost.Zl = 0*np.ones((nz,))
+            ocp.cost.Zu = 0*np.ones((nz,))
+            ocp.cost.zl = 100*np.ones((nz,))
+            ocp.cost.zu = 100*np.ones((nz,))
+            ocp.cost.Zl_e = 0*np.ones((nz,))
+            ocp.cost.Zu_e = 0*np.ones((nz,))
+            ocp.cost.zl_e = 100*np.ones((nz,))
+            ocp.cost.zu_e = 100*np.ones((nz,))
 
 
             #state constraints
@@ -130,17 +132,18 @@ class SafetyFilter:
 
 
             #obstacle constraint
-            p0 = np.array([0,0,0])
-            p0[:2] = env.obstacles[0].position
-            p0[2] = env.obstacles[0].radius
+            p0 = np.zeros((3*n_obstacles))
+            for i in range(n_obstacles):
+                  p0[3*i:3*i+2] = env.obstacles[i].position
+                  p0[3*i+2] = env.obstacles[i].radius
             ocp.parameter_values = p0
-
-            ocp.constraints.lh = np.array([0.0])
-            ocp.constraints.uh = np.array([400.0])
+      
+            ocp.constraints.lh = np.zeros((n_obstacles,))
+            ocp.constraints.uh = 999*np.ones((n_obstacles,))
             ocp.constraints.lh_e = ocp.constraints.lh
             ocp.constraints.uh_e = ocp.constraints.uh 
-            ocp.constraints.idxsh = np.array([0])
-            ocp.constraints.idxsh_e = np.array([0])
+            ocp.constraints.idxsh = np.array(range(n_obstacles))
+            ocp.constraints.idxsh_e = ocp.constraints.idxsh 
 
 
             #initial state
