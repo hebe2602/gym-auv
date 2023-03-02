@@ -1,5 +1,5 @@
 from acados_template import AcadosOcp, AcadosOcpSolver
-from acadostesting_v02_export.models.ship_model import export_ship_model
+from gym_auv.utils.ship_model import export_ship_model
 import numpy as np
 import time
 from casadi import log
