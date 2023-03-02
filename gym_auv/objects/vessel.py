@@ -337,7 +337,7 @@ class Vessel():
         self._use_safety_filter = True
 
 
-    def perceive(self, obstacles:list) -> (np.ndarray, np.ndarray):
+    def perceive(self, obstacles:list):
         """
         Simulates the sensor suite and returns observation arrays of the environment.
         
