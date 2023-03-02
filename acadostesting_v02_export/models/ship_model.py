@@ -111,13 +111,14 @@ def export_ship_model(model_type = 'simplified') -> AcadosModel:
     y_obs = SX.sym('y_obs')
     r_obs = SX.sym('r_obs')
     state_obs = vertcat(x_obs,y_obs,r_obs)
-   
+    track_heading = SX.sym('track_heading')
+    ctp_x = SX.sym('ctp_x')
+    ctp_y = SX.sym('ctp_y')
     
     #Dynamics
     # nu_expl = M_inv@(-C@nu - D@nu + B@F)
     def princip(angle):
         return (fmod((angle + np.pi),(2*np.pi))) - np.pi
-
 
     cos_phi = cos(phi)
     sin_phi = sin(phi)
@@ -132,9 +133,9 @@ def export_ship_model(model_type = 'simplified') -> AcadosModel:
     if model_type == 'realistic':
 
         nu_impl = vertcat(
-            M[0,0]*u_dot + (-33.8*v + 11.748*r)*r + 2*u - F_u,
-            M[1,1]*v_dot + M[1,2]*r_dot + 25.8*u*r + 7*v - 2.5425*r - 1.7244*F_r,
-            M[2,1]*v_dot + M[2,2]*r_dot + (33.8*v - 11.748*r)*u - 25.8*u*v - 2.5425*v + 1.422*r - F_r
+            (m-X_udot)*u_dot + (-33.8*v + 11.748*r)*r + 2.0*u - F_u,
+            (m - Y_vdot)*v_dot + (m*x_g - Y_rdot)*r_dot + 25.8*u*r + 7.0*v - 2.5425*r,
+            (m*x_g - N_vdot)*v_dot + (I_z - N_rdot)*r_dot + (33.8*v - 11.748*r)*u - 25.8*u*v - 2.5425*v + 1.422*r - F_r
         )
         nu_expl = vertcat(
             M_inv[0,0]*(-2.0*u - (-33.8*v + 11.748*r)*r + F_u),
@@ -171,6 +172,22 @@ def export_ship_model(model_type = 'simplified') -> AcadosModel:
 
     con_h_expr = sqrt((x - x_obs)**2 + (y - y_obs)**2) - r_obs - 5.0
     con_h_expr_e = con_h_expr
+    
+    track_relative_state = vertcat(
+        sin(track_heading)*(x-ctp_x) + cos(track_heading)*(y-ctp_y),
+        phi - track_heading,
+        u,
+        v,
+        r
+    )
+
+    P_terminal = np.array([[1.0e-2,0.0,0.0,0.0,0.0],
+                           [0.0,4.054e-1,0.0,0.0,0.0],
+                           [0.0,0.0,2.50e-1,0.0,0.0],
+                           [0.0,0.0,0.0,2.50e-1,0.0],
+                           [0.0,0.0,0.0,0.0,2.15e1]])
+    
+    terminal_set_expr = track_relative_state.T@P_terminal@track_relative_state
 
     model = AcadosModel()
 
@@ -179,9 +196,9 @@ def export_ship_model(model_type = 'simplified') -> AcadosModel:
     model.x = state
     model.xdot = state_dot
     model.u = F
-    model.p = vertcat(state_obs)
+    model.p = vertcat(state_obs,ctp_x,ctp_y,track_heading)
     model.con_h_expr = con_h_expr
-    model.con_h_expr_e = con_h_expr_e
+    model.con_h_expr_e = vertcat(con_h_expr_e,terminal_set_expr)
     model.name = model_name
 
     return model
