@@ -71,15 +71,15 @@ class SafetyFilter:
             ocp.cost.yref_0 = yref_0
 
             #set slack variables cost
-            nz = nx + (n_obstacles - 1)
+            nz = 4 + (n_obstacles - 1)
             ocp.cost.Zl = 0*np.ones((nz,))
             ocp.cost.Zu = 0*np.ones((nz,))
             ocp.cost.zl = 100*np.ones((nz,))
             ocp.cost.zu = 100*np.ones((nz,))
-            ocp.cost.Zl_e = 0*np.ones((nz,))
-            ocp.cost.Zu_e = 0*np.ones((nz,))
-            ocp.cost.zl_e = 100*np.ones((nz,))
-            ocp.cost.zu_e = 100*np.ones((nz,))
+            ocp.cost.Zl_e = 0*np.ones((2,))
+            ocp.cost.Zu_e = 0*np.ones((2,))
+            ocp.cost.zl_e = 100*np.ones((2,))
+            ocp.cost.zu_e = 100*np.ones((2,))
 
 
             #state constraints
@@ -134,18 +134,19 @@ class SafetyFilter:
 
 
             #obstacle constraint
-            p0 = np.zeros((3*n_obstacles))
+            p0 = np.zeros((3 + 3*n_obstacles))
             for i in range(n_obstacles):
                   p0[3*i:3*i+2] = env.obstacles[i].position
                   p0[3*i+2] = env.obstacles[i].radius
-            ocp.parameter_values = p0
-      
+
+            self.p = p0
+            ocp.parameter_values = self.p
             ocp.constraints.lh = np.zeros((n_obstacles,))
             ocp.constraints.uh = 999*np.ones((n_obstacles,))
-            ocp.constraints.lh_e = ocp.constraints.lh
-            ocp.constraints.uh_e = ocp.constraints.uh 
+            ocp.constraints.lh_e = np.zeros((n_obstacles + 1,))
+            ocp.constraints.uh_e = 999*np.ones((n_obstacles + 1,))
             ocp.constraints.idxsh = np.array(range(n_obstacles))
-            ocp.constraints.idxsh_e = ocp.constraints.idxsh 
+            ocp.constraints.idxsh_e = np.array(range(n_obstacles + 1))
 
 
             #initial state
@@ -203,25 +204,22 @@ class SafetyFilter:
             self.diff_u = new_u - u
             return new_u
 
-      def update(self, state, obstacles, nav_state):
+      def update(self, state, nav_state):
             """
             Update the current state. 
             """
             
             self.ocp_solver.set(0, "lbx", state)
             self.ocp_solver.set(0, "ubx", state)
-            
-            obs_x = obstacles[0].position[0]
-            obs_y = obstacles[0].position[1]
-            obs_r = obstacles[0].radius
+      
             ctp_heading = nav_state['target_heading']
             ctp = nav_state['closest_point']
             ctp_x = ctp[0]
             ctp_y = ctp[1]
-            p = np.array([obs_x,obs_y,obs_r,ctp_x,ctp_y,ctp_heading])
+            self.p[-3:] = np.array([ctp_x,ctp_y,ctp_heading])
             # for i in range(self.N + 1):
             #      self.ocp_solver.set(i,'p',p)
-            self.ocp_solver.set(self.N,'p',p)
+            self.ocp_solver.set(self.N,'p',self.p)
             
             
 
