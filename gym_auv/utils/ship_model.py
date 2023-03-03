@@ -114,6 +114,7 @@ def export_ship_model(model_type = 'simplified', n_obstacles = 1) -> AcadosModel
         obs_list.append(SX.sym('y_obs_' + str(i)))
         obs_list.append(SX.sym('r_obs_' + str(i)))
     state_obs = vertcat(*obs_list)
+    
     track_heading = SX.sym('track_heading')
     ctp_x = SX.sym('ctp_x')
     ctp_y = SX.sym('ctp_y')
