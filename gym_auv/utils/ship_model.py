@@ -72,7 +72,7 @@ def N(nu):
     return N
 
 
-def export_ship_model(model_type = 'simplified') -> AcadosModel:
+def export_ship_model(model_type = 'simplified', n_obstacles = 1) -> AcadosModel:
 
     model_name = 'ship_ode'
     
@@ -107,10 +107,13 @@ def export_ship_model(model_type = 'simplified') -> AcadosModel:
     F_u = SX.sym('F_u')
     F_r = SX.sym('F_r')
     F = vertcat(F_u,F_r)
-    x_obs = SX.sym('x_obs')
-    y_obs = SX.sym('y_obs')
-    r_obs = SX.sym('r_obs')
-    state_obs = vertcat(x_obs,y_obs,r_obs)
+
+    obs_list = []
+    for i in range(n_obstacles):
+        obs_list.append(SX.sym('x_obs_' + str(i)))
+        obs_list.append(SX.sym('y_obs_' + str(i)))
+        obs_list.append(SX.sym('r_obs_' + str(i)))
+    state_obs = vertcat(*obs_list)
     track_heading = SX.sym('track_heading')
     ctp_x = SX.sym('ctp_x')
     ctp_y = SX.sym('ctp_y')
@@ -166,11 +169,18 @@ def export_ship_model(model_type = 'simplified') -> AcadosModel:
     #     Y_v*v - (m*u - Y_r)*r,
     #     N_v*v - (m*x_g*u-N_r)*r + F_r
     # )
+
+    def princip(angle):
+        return (fmod((angle + np.pi),(2*np.pi))) - np.pi
+
     eta_expl[2] = princip(eta_expl[2])
     f_impl = vertcat(eta_impl,nu_impl)
     f_expl = vertcat(eta_expl,nu_expl)
 
-    con_h_expr = sqrt((x - x_obs)**2 + (y - y_obs)**2) - r_obs - 5.0
+    obstacle_constraint_list = []
+    for i in range(n_obstacles):
+        obstacle_constraint_list.append(sqrt((x - obs_list[3*i])**2 + (y - obs_list[3*i+1])**2) - obs_list[3*i+2] - 5.0)
+    con_h_expr = vertcat(*obstacle_constraint_list)
     con_h_expr_e = con_h_expr
     
     track_relative_state = vertcat(

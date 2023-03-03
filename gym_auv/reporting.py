@@ -648,8 +648,8 @@ def plot_actions(env, agent, fig_dir, fig_prefix='', N=500, creategifs=True, cre
             obs = env.observe()
             action, _states = agent.predict(obs, deterministic=True)
             action[0] = (action[0] + 1)/2 
-            surge = env.vessel._surge(action[0])
-            steer = 180/np.pi*env.vessel._steer(action[1])
+            surge = env.vessel._thrust_surge(action[0])
+            steer = 180/np.pi*env.vessel._moment_steer(action[1])
             steer_arr[i_r, i_t] = steer 
             surge_arr[i_r, i_t] = surge 
 
@@ -876,7 +876,7 @@ def plot_vector_field(env, agent, fig_dir, fig_prefix='', xstep=2.0, ystep=5.0, 
                 #env.reset()
                 env.path = Path(waypoints)
                 env.obstacles = obstacles
-                env.vessel.reset([x, y, psi], [0, 0, 0])
+                env.vessel.reset([x, y, psi]) #, [0, 0, 0])
                 env.target_arclength = env.path.length
                 obs, reward, done, info = env.step([0,0])
                 #obs = env.observe()

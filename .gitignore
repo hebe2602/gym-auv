@@ -4,7 +4,7 @@ env/*
 acadostesting_v02_export/c_generated_code/*
 acadostesting_v02_export/acados_ocp.json
 c_generated_code/*
-acados_ocp.json
+acados_ocp/*
 *.png
 *.pdf
 *.pyc

@@ -395,3 +395,93 @@ class ColregRewarder(BaseRewarder):
             reward *= self.params['negative_multiplier']
 
         return reward
+
+
+
+
+class SafetyColavRewarder(BaseRewarder):
+    def __init__(self, vessel, test_mode):
+        super().__init__(vessel, test_mode)
+        self.params['gamma_theta'] = 10.0
+        self.params['gamma_x'] = 0.1
+        self.params['gamma_v_y'] = 1.0
+        self.params['gamma_y_e'] = 5.0
+        self.params['penalty_yawrate'] = 0.0
+        self.params['penalty_torque_change'] = 0.0
+        self.params['cruise_speed'] = 0.1
+        self.params['neutral_speed'] = 0.05
+        self.params['negative_multiplier'] = 2.0
+        self.params['collision'] = -1000.0
+        self.params['lambda'] = 0.5  # _sample_lambda(scale=0.2)
+        self.params['eta'] = 0  # _sample_eta()
+        self.params['gamme_PSF'] = 10  # _sample_eta()
+
+    N_INSIGHTS = 0
+
+    def insight(self):
+        return np.array([])
+        # return np.array([np.log10(self.params['lambda'])])
+
+    def calculate(self):
+        latest_data = self._vessel.req_latest_data()
+        nav_states = latest_data['navigation']
+        measured_distances = latest_data['distance_measurements']
+        measured_speeds = latest_data['speed_measurements']
+        collision = latest_data['collision']
+
+        if collision:
+            reward = self.params["collision"]
+            return reward
+
+        reward = 0
+
+        # Extracting navigation states
+        cross_track_error = nav_states['cross_track_error']
+        heading_error = nav_states['heading_error']
+
+        # Calculating path following reward component
+        cross_track_performance = np.exp(-self.params['gamma_y_e'] * np.abs(cross_track_error))
+        path_reward = (1 + np.cos(heading_error) * self._vessel.speed / self._vessel.max_speed) * (
+                    1 + cross_track_performance) - 1
+
+        # Calculating obstacle avoidance reward component
+        closeness_penalty_num = 0
+        closeness_penalty_den = 0
+        if self._vessel.n_sensors > 0:
+            for isensor in range(self._vessel.n_sensors):
+                angle = self._vessel.sensor_angles[isensor]
+                x = measured_distances[isensor]
+                speed_vec = measured_speeds[isensor]
+                weight = 1 / (1 + np.abs(self.params['gamma_theta'] * angle))
+                raw_penalty = self._vessel.config["sensor_range"] * np.exp(
+                    -self.params['gamma_x'] * x + self.params['gamma_v_y'] * max(0, speed_vec[1]))
+                weighted_penalty = weight * raw_penalty
+                closeness_penalty_num += weighted_penalty
+                closeness_penalty_den += weight
+
+            closeness_reward = -closeness_penalty_num / closeness_penalty_den
+        else:
+            closeness_reward = 0
+
+        # Calculating living penalty
+        living_penalty = 2.0 #self.params['lambda'] * (2 * self.params["neutral_speed"] + 1) + self.params["eta"] * self.params["neutral_speed"]
+
+
+        # Penalizing safety violations
+        if self._vessel._use_safety_filter:
+            safety_violation_penalty = -self.params['gamme_PSF']*(abs(self._vessel.safety_filter.diff_u[0]/self._vessel.config['thrust_max_auv']) + \
+                                   abs(self._vessel.safety_filter.diff_u[1]/self._vessel.config['moment_max_auv']))
+            #print("Safety violation", safety_violation_penalty)
+            #safety_violation_penalty = 0
+        else:
+            safety_violation_penalty = 0
+            #print("No safety filter used")
+    
+
+        # Calculating total reward
+        reward = path_reward + \
+                0.05 * closeness_reward + \
+                safety_violation_penalty - \
+                living_penalty
+
+        return reward

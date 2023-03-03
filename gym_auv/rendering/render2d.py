@@ -495,11 +495,6 @@ def _render_safety_zone(env):
     #render safe trajectory
     env._viewer2d.draw_polyline(env.vessel.safe_trajectory[:,0:2], linewidth=2, color=(0.8, 0.3, 0.3, 0.8))
 
-
-
-
-
-
         
 
 def _render_tiles(env, win):
@@ -600,7 +595,8 @@ def render_env(env, mode):
         _render_vessel(env)
         _render_tiles(env, win)
         _render_obstacles(env)
-        _render_safety_zone(env)
+        if env.vessel._use_safety_filter:
+            _render_safety_zone(env)
         #_render_feasible_distances(env)
         if env.path is not None:
             _render_progress(env)

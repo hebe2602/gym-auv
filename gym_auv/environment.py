@@ -147,6 +147,7 @@ class BaseEnvironment(gym.Env, ABC):
         if self.rng is None:
             self.seed()
 
+
         # Saving information about episode
         if self.t_step:
            self.save_latest_episode(save_history=save_history)

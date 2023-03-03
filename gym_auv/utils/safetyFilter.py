@@ -24,28 +24,32 @@ class SafetyFilter:
       """
       Saftey filter class - sets up a predictive safety filter using the acados solver.
       """
-      def __init__(self, env):
+      def __init__(self, env, rank):
             """
             Initialize the filter with the ship dynamics model, constraints and solver options.
             """
 
             ocp = AcadosOcp()
+            ocp.code_export_directory = 'c_generated_code/c_generated_code_' + str(rank)
             self.env = env
+            self.diff_u = 0.0
+            n_obstacles = env.n_obstacles
 
             # set model
-            model = export_ship_model(model_type='simplified')
+            model = export_ship_model(n_obstacles=n_obstacles)
             ocp.model = model
 
+            self.N = 50
             T_s = 0.5
             nx = model.x.size()[0]
             nu = model.u.size()[0]
             ny = nu
-            self.N = 50
             T_f = self.N*T_s
 
             # set dimensions
             ocp.dims.N = self.N
 
+            
 
             # set cost
             ocp.cost.cost_type_0 = 'LINEAR_LS'
@@ -67,14 +71,15 @@ class SafetyFilter:
             ocp.cost.yref_0 = yref_0
 
             #set slack variables cost
-            ocp.cost.Zl = 0*np.ones((4,))
-            ocp.cost.Zu = 0*np.ones((4,))
-            ocp.cost.zl = 100*np.ones((4,))
-            ocp.cost.zu = 100*np.ones((4,))
-            ocp.cost.Zl_e = 0*np.ones((2,))
-            ocp.cost.Zu_e = 0*np.ones((2,))
-            ocp.cost.zl_e = 100*np.ones((2,))
-            ocp.cost.zu_e = 100*np.ones((2,))
+            nz = nx + (n_obstacles - 1)
+            ocp.cost.Zl = 0*np.ones((nz,))
+            ocp.cost.Zu = 0*np.ones((nz,))
+            ocp.cost.zl = 100*np.ones((nz,))
+            ocp.cost.zu = 100*np.ones((nz,))
+            ocp.cost.Zl_e = 0*np.ones((nz,))
+            ocp.cost.Zu_e = 0*np.ones((nz,))
+            ocp.cost.zl_e = 100*np.ones((nz,))
+            ocp.cost.zu_e = 100*np.ones((nz,))
 
 
             #state constraints
@@ -128,22 +133,19 @@ class SafetyFilter:
             env.vessel.safe_trajectory = np.ndarray((self.N+1,nx))
 
 
-            #Initialize obstacle and track params
-            p0 = np.array([0.0,0.0,0.0,0.0,0.0,0.0])
-            p0[:2] = env.obstacles[0].position
-            p0[2] = env.obstacles[0].radius
-
-
-            # initialize track params
-            
+            #obstacle constraint
+            p0 = np.zeros((3*n_obstacles))
+            for i in range(n_obstacles):
+                  p0[3*i:3*i+2] = env.obstacles[i].position
+                  p0[3*i+2] = env.obstacles[i].radius
             ocp.parameter_values = p0
-            
-            ocp.constraints.lh = np.array([0.0])
-            ocp.constraints.uh = np.array([500.0])
-            ocp.constraints.lh_e = np.array([0.0,-1.0])
-            ocp.constraints.uh_e = np.array([500.0,1.0])
-            ocp.constraints.idxsh = np.array([0])
-            ocp.constraints.idxsh_e = np.array([0,1])
+      
+            ocp.constraints.lh = np.zeros((n_obstacles,))
+            ocp.constraints.uh = 999*np.ones((n_obstacles,))
+            ocp.constraints.lh_e = ocp.constraints.lh
+            ocp.constraints.uh_e = ocp.constraints.uh 
+            ocp.constraints.idxsh = np.array(range(n_obstacles))
+            ocp.constraints.idxsh_e = ocp.constraints.idxsh 
 
 
             #initial state
@@ -167,7 +169,10 @@ class SafetyFilter:
             # set prediction horizon
             ocp.solver_options.tf = T_f
 
-            self.ocp_solver = AcadosOcpSolver(ocp, json_file = 'acados_ocp.json')
+            json_file = 'acados_ocp/acados_ocp_' + str(rank) + '.json'
+
+            self.ocp_solver = AcadosOcpSolver(ocp, json_file = json_file)
+            
 
       
       def filter(self, u, state):
@@ -178,12 +183,13 @@ class SafetyFilter:
             """      
 
             self.ocp_solver.cost_set(0,"yref",u)
-            print('Current state: ', state)
-            curr_pred = self.ocp_solver.get(1,'x')
-            print('Diff between current state and PSF prediction: ', state - curr_pred)
+
+            # print('Current state: ', state)
+            # curr_pred = self.ocp_solver.get(1,'x')
+            # print('Diff between current state and PSF prediction: ', state - curr_pred)
 
             status = self.ocp_solver.solve()
-            self.ocp_solver.print_statistics() # encapsulates: stat = ocp_solver.get_stats("statistics")
+            #self.ocp_solver.print_statistics() # encapsulates: stat = ocp_solver.get_stats("statistics")
 
             for j in range(self.N+1):
                   self.env.vessel.safe_trajectory[j,:] = self.ocp_solver.get(j,'x')
@@ -192,8 +198,10 @@ class SafetyFilter:
                   for i in range(self.N):
                        print(i, ': x: ', self.ocp_solver.get(i,'x'), ', u: ', self.ocp_solver.get(i,'u'))
                   raise Exception(f'acados returned status {status}.')
-            
-            return self.ocp_solver.get(0, "u")
+
+            new_u = self.ocp_solver.get(0, "u")
+            self.diff_u = new_u - u
+            return new_u
 
       def update(self, state, obstacles, nav_state):
             """

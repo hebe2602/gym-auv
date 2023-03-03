@@ -7,6 +7,7 @@ from gym_auv.objects.vessel import Vessel
 from gym_auv.objects.path import RandomCurveThroughOrigin, Path
 from gym_auv.objects.obstacles import CircularObstacle, VesselObstacle
 from gym_auv.environment import BaseEnvironment
+from gym_auv.objects.rewarder import SafetyColavRewarder
 
 import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -17,24 +18,40 @@ deg2rad = math.pi/180
 
 class TestScenario0(BaseEnvironment):
     def _generate(self):
+        self.n_obstacles = 2
         self.path = Path([[0, 100], [0, 0]])
 
         init_state = self.path(0)
         init_angle = self.path.get_direction(0)
 
+        safety_filter_rank = -1
+        if hasattr(self.vessel, 'safety_filter_rank'):
+            safety_filter_rank = self.vessel.safety_filter_rank
+
+
+
         self.vessel = Vessel(self.config, np.hstack([init_state, init_angle]))
         prog = self.path.get_closest_arclength(self.vessel.position)
         self.path_prog_hist = np.array([prog])
         self.max_path_prog = prog
+        
 
         obst_arclength = 5
-        for o in range(1):
+        for o in range(self.n_obstacles):
             obst_radius = 10
-            obst_arclength += obst_radius*5
+            obst_arclength += obst_radius*2 + 5
             obst_position = self.path(obst_arclength)
 
             obst_displacement = np.array([obst_radius*(-1)**(o+1), obst_radius])
             self.obstacles.append(CircularObstacle(obst_position + obst_displacement, obst_radius))
+        
+        if safety_filter_rank != -1:
+            self.vessel.activate_safety_filter(self, safety_filter_rank)
+        
+        self._rewarder_class = SafetyColavRewarder
+
+        
+
 
 
 
@@ -319,3 +336,44 @@ class DebugScenario(BaseEnvironment):
             #         z = 0.5*np.sqrt(max(0, 15**2 - (25.0-x)**2 - (25.0-y)**2))
             #         terrain[x][y] = z
             self._viewer3d.create_world(self.all_terrain, 0, 0, 500, 500)
+
+
+
+########################################### SAFETY FILTER ENVS ########################################################
+
+class RandomScenario(BaseEnvironment):
+    def _generate(self):
+        #Random path
+        path_length = 100
+        self.n_obstacles = 5
+        self.path = RandomCurveThroughOrigin(self.rng, 3, length=path_length)
+        init_state = self.path(0)
+        init_angle = self.path.get_direction(0)
+
+        #Random state
+        #init_state[0] += 50*(self.rng.rand()-0.5)
+        #init_state[1] += 50*(self.rng.rand()-0.5)
+        #init_angle = geom.princip(init_angle + 2*np.pi*(self.rng.rand()-0.5))
+
+        safety_filter_rank = -1
+        if hasattr(self.vessel, 'safety_filter_rank'):
+            safety_filter_rank = self.vessel.safety_filter_rank
+
+        self.vessel = Vessel(self.config, np.hstack([init_state, init_angle]), width=self.config["vessel_width"])
+        prog = self.path.get_closest_arclength(self.vessel.position)
+        self.path_prog_hist = np.array([prog])
+        self.max_path_prog = prog
+
+        obst_arclength = path_length/n_obstacles
+        obst_radius = 10 
+        for o in range(self.n_obstacles):
+            obst_arclength += obst_arclength
+            obst_position = self.path(obst_arclength)
+            obst_displacement = np.array([obst_radius*(-1)**(o+1), obst_radius])
+            self.obstacles.append(CircularObstacle(obst_position + obst_displacement, obst_radius))
+        
+        if safety_filter_rank != -1:
+            self.vessel.activate_safety_filter(self, safety_filter_rank)
+        
+        self._rewarder_class = SafetyColavRewarder
+        

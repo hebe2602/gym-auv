@@ -16,7 +16,7 @@ def sector_partition_fun(env, isensor, c=0.1):
 DEFAULT_CONFIG = {
     # ---- EPISODE ---- #
     "min_cumulative_reward": -2000,                 # Minimum cumulative reward received before episode ends
-    "max_timesteps": 10000,                         # Maximum amount of timesteps before episode ends
+    "max_timesteps": 2000, #10000,                         # Maximum amount of timesteps before episode ends
     "min_goal_distance": 5,                         # Minimum aboslute distance to the goal position before episode ends
     "min_path_progress": 0.99,                      # Minimum path progress before scenario is considered successful and the episode ended
     
@@ -34,8 +34,8 @@ DEFAULT_CONFIG = {
     'render_distance': 300,                         # 3D rendering render distance [m]
     "sensing": True,                                # Whether rangerfinder sensors for perception should be activated
     "sensor_interval_load_obstacles": 25,           # Interval for loading nearby obstacles
-    "n_sensors_per_sector": 5,                     # Number of rangefinder sensors within each sector
-    "n_sectors": 9,                                 # Number of sensor sectors
+    "n_sensors_per_sector": 20,                     # Number of rangefinder sensors within each sector
+    "n_sectors": 9,                                  # Number of sensor sectors
     "sector_partition_fun": sector_partition_fun,   # Function that returns corresponding sector for a given sensor index
     "sensor_rotation": False,                       # Whether to activate the sectors in a rotating pattern (for performance reasons)
     "sensor_range": 150.0,                          # Range of rangefinder sensors [m]
@@ -153,7 +153,14 @@ SCENARIOS = {
         'entry_point': 'gym_auv.envs:Env4',
         'config': MOVING_CONFIG
     },
+
+    ###### SAFETY FILTER ENVS #####
+    'RandomScenario-v0': {
+        'entry_point': 'gym_auv.envs:RandomScenario',
+        'config': MOVING_CONFIG
+    },
 }
+
 
 for scenario in SCENARIOS:
     register(

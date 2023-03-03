@@ -68,6 +68,9 @@ def make_mp_env(env_id, rank, envconfig, seed=0, pilot=None):
     def _init():
         env = create_env(env_id, envconfig, pilot=pilot)
         env.seed(seed + rank)
+
+        #activate safety filter with rank
+        env.vessel.activate_safety_filter(env, rank)
         return env
     set_random_seed(seed)
     return _init
@@ -150,7 +153,7 @@ def play_scenario(env, recorded_env, args, agent=None):
 
     env.reset()
 
-    env.vessel.activate_safety_filter(env)
+    env.vessel.activate_safety_filter(env, 0)
     try:
         while True:
             t = time()
@@ -365,6 +368,8 @@ def main(args):
         if (args.agent is not None):
             agent = model.load(args.agent)
             agent.set_env(vec_env)
+
+
         else:
             if (model == PPO):
                 if args.recurrent:
@@ -633,7 +638,7 @@ def main(args):
 
         ### CALLBACKS ###
         # Things we want to do: calculate statistics, say 1000 times during training.
-        total_timesteps = 10000000
+        total_timesteps = 1000000 #10000000
         save_stats_freq = total_timesteps // 1000  # Save stats 1000 times during training (EveryNTimesteps)
         save_agent_freq = total_timesteps // 100   # Save the agent 100 times throughout training
         record_agent_freq = total_timesteps // 10  # Evaluate and record 10 times during training (EvalCallback)
@@ -721,12 +726,13 @@ def main(args):
                 #            self.report.history.append(env_histories[env_idx][episode])
 
 
-                #if self.num_timesteps % self.save_stats_freq == 0 and len(self.report.history) > 1:
-                #   self.report.last_episode = self.training_env.get_attr('last_episode')[0]
-                #    self.report.obstacles = self.training_env.get_attr('obstacles')[0]
-                #    self.report.episode = self.n_episodes
-                #
-                #    gym_auv.reporting.report(self.report, report_dir=figure_folder)
+                # if self.num_timesteps % self.save_stats_freq == 0 and len(self.report.history) > 1:
+                #     self.report.last_episode = self.training_env.get_attr('last_episode')[0]
+                #     self.report.obstacles = self.training_env.get_attr('obstacles')[0]
+                #     self.report.episode = self.n_episodes
+                
+                #     gym_auv.reporting.report(self.report, report_dir=figure_folder)
+
 
                 if self.num_timesteps % self.save_agent_freq == 0:
                     print("Saving agent after", self.num_timesteps, "timesteps")
@@ -741,12 +747,14 @@ def main(args):
                 #        )
                 if self.num_timesteps % self.record_agent_freq == 0:
                     agent_filepath = os.path.join(self.log_dir, str(self.num_timesteps) + '.pkl')
-                    cmd = 'python run.py enjoy {} --agent "{}" --video-dir "{}" --video-name "{}" --recording-length {} --algo {} --envconfig {}{}'.format(
-                        args.env, agent_filepath, video_folder, args.env + '-' + str(self.num_timesteps),
-                        recording_length, args.algo, envconfig_string,
-                        ' --recurrent' if args.recurrent else ''
-                    )
-                    subprocess.Popen(cmd)
+                    # cmd = 'python run.py enjoy {} --agent "{}" --video-dir "{}" --video-name "{}" --recording-length {} --algo {} --envconfig {}{}'.format(
+                    #     args.env, agent_filepath, video_folder, args.env + '-' + str(self.num_timesteps),
+                    #     recording_length, args.algo, envconfig_string,
+                    #     ' --recurrent' if args.recurrent else ''
+                    # )
+                    cmd = 'python run.py enjoy {} --agent "{}"'.format(
+                        args.env, agent_filepath)
+                    subprocess.Popen(cmd, shell=True)
 
                 return True
 
@@ -785,8 +793,8 @@ def main(args):
 
         else:
             env = create_env(env_id, envconfig, test_mode=True, pilot=args.pilot)
-            with open(os.path.join(figure_folder, 'config.json'), 'w') as f:
-                json.dump(env.config, f)
+            #with open(os.path.join(figure_folder, 'config.json'), 'w') as f:
+                #json.dump(env.config, f)
 
             if args.mode == 'policyplot':
                 gym_auv.reporting.plot_actions(env, agent, fig_dir=figure_folder)
@@ -888,8 +896,8 @@ def main(args):
             # Thomas: uncomment after fixing logging to HDF5-files in training
             gym_auv.reporting.report(env, report_dir=report_dir, lastn=100)
 
-            #gym_auv.reporting.plot_trajectory(env, fig_dir=scenario_folder, fig_prefix=(args.env + '_' + id))
-            #env.save(os.path.join(scenario_folder, id))
+            # gym_auv.reporting.plot_trajectory(env, fig_dir=scenario_folder, fig_prefix=(args.env + '_' + id))
+            # env.save(os.path.join(scenario_folder, id))
 
             return copy.deepcopy(env.last_episode)
 
