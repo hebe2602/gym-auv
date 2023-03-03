@@ -323,7 +323,7 @@ class Vessel():
 
         #Update safety filter
         if self._use_safety_filter:
-            self.safety_filter.update(self._state)
+            self.safety_filter.update(self._state, self._nearby_obstacles, self._last_navi_state_dict)
 
         self._prev_states = np.vstack([self._prev_states,self._state])
         self._prev_inputs = np.vstack([self._prev_inputs,self._input])
@@ -454,6 +454,9 @@ class Vessel():
 
         # Calculating path arclength at reference point, i.e. the point closest to the vessel
         vessel_arclength = path.get_closest_arclength(self.position)
+        
+        # Calculating coordinates of closest point on path wrt. vessel
+        closest_point = path.__call__(vessel_arclength)
 
         # Calculating tangential path direction at reference point
         path_direction = path.get_direction(vessel_arclength)
@@ -494,6 +497,7 @@ class Vessel():
             'look_ahead_path_direction': look_ahead_path_direction,
             'path_direction': path_direction,
             'vessel_arclength': vessel_arclength,
+            'closest_point': closest_point,
             'target_arclength': target_arclength,
             'goal_distance': goal_distance
         }
@@ -523,7 +527,12 @@ class Vessel():
         eta_dot = geom.Rzyx(0, 0, geom.princip(psi)).dot(nu)
         nu_dot = const.M_inv.dot(
             tau
-            #- const.D.dot(nu)
+
+            ## Realistic:
+            # - const.D.dot(nu)
+            # - const.C(nu).dot(nu)
+
+            ## Simplified
             - const.N(nu).dot(nu)
         )
         state_dot = np.concatenate([eta_dot, nu_dot])

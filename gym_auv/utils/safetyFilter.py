@@ -1,5 +1,5 @@
 from acados_template import AcadosOcp, AcadosOcpSolver
-from acadostesting_v02_export.models.ship_model import export_ship_model
+from gym_auv.utils.ship_model import export_ship_model
 import numpy as np
 import time
 from casadi import log
@@ -83,16 +83,16 @@ class SafetyFilter:
 
 
             #state constraints
-            xy_max = 100.0
             uv_max = 2.0
             r_max = 0.2
 
-            ocp.constraints.lbx = np.array([-xy_max,-xy_max,-uv_max,-uv_max,-r_max])
-            ocp.constraints.ubx = np.array([+xy_max,+xy_max,+uv_max,+uv_max,+r_max])
-            ocp.constraints.idxbx = np.array([0,1,3,4,5])
+            ocp.constraints.lbx = np.array([-uv_max,-uv_max,-r_max])
+            ocp.constraints.ubx = np.array([+uv_max,+uv_max,+r_max])
+            ocp.constraints.idxbx = np.array([3,4,5])
+            ocp.constraints.idxsbx = np.array([0,1,2])
 
             #input constraints
-            ocp.constraints.lbu = np.array([0,-F_r_max])
+            ocp.constraints.lbu = np.array([-F_u_max,-F_r_max])
             ocp.constraints.ubu = np.array([+F_u_max,+F_r_max])
             ocp.constraints.idxbu = np.array([0,1])
 
@@ -103,30 +103,32 @@ class SafetyFilter:
             #ocp.constraints.lbx_e = np.array([goal[0]-xy_max_goal,goal[1]-xy_max_goal,-uv_max,-uv_max,-r_max])
             #ocp.constraints.ubx_e = np.array([goal[0]+xy_max_goal,goal[1]+xy_max_goal,+uv_max,+uv_max,+r_max])
 
-            ocp.constraints.lbx_e = np.array([-xy_max,-xy_max,-uv_max,-uv_max,-r_max])
-            ocp.constraints.ubx_e = np.array([+xy_max,+xy_max,+uv_max,+uv_max,+r_max])
-            ocp.constraints.idxbx_e = np.array([0,1,3,4,5])
-            ocp.constraints.idxsbx = np.array([0,1,2,3,4])
-            ocp.constraints.idxsbx_e = np.array([0,1,2,3,4])
+            # ocp.constraints.lbx_e = np.array([-xy_max,-xy_max,-uv_max,-uv_max,-r_max])
+            # ocp.constraints.ubx_e = np.array([+xy_max,+xy_max,+uv_max,+uv_max,+r_max])
+            # ocp.constraints.idxbx_e = np.array([0,1,3,4,5])
+            
+            # ocp.constraints.idxsbx_e = np.array([0,1,2,3,4])
             
 
             #Safety zone for rendering
-            env.vessel.safety_zone = Polygon([(-ocp.constraints.lbx[0], -ocp.constraints.lbx[1]), 
-                                                (-ocp.constraints.lbx[0], ocp.constraints.lbx[1]), 
-                                                (ocp.constraints.lbx[0], ocp.constraints.lbx[1]), 
-                                                (ocp.constraints.lbx[0], -ocp.constraints.lbx[1]), 
-                                                (-ocp.constraints.lbx[0], -ocp.constraints.lbx[1]), 
+            env.vessel.safety_zone = Polygon([(-1, -1), 
+                                                (-1, 1), 
+                                                (1, 1), 
+                                                (1, -1), 
+                                                (-1, -1), 
                                                 ])
             
             
             #Terminal set for rendering 
-            env.vessel.terminal_set = Polygon([ (-ocp.constraints.lbx_e[0], -ocp.constraints.lbx_e[1]), 
-                                                (-ocp.constraints.lbx_e[0], ocp.constraints.lbx_e[1]), 
-                                                (ocp.constraints.lbx_e[0], ocp.constraints.lbx_e[1]), 
-                                                (ocp.constraints.lbx_e[0], -ocp.constraints.lbx_e[1]), 
-                                                (-ocp.constraints.lbx_e[0], -ocp.constraints.lbx_e[1]), 
-                                                ])
-            
+            # env.vessel.terminal_set = Polygon([ (-ocp.constraints.lbx_e[0], -ocp.constraints.lbx_e[1]), 
+            #                                     (-ocp.constraints.lbx_e[0], ocp.constraints.lbx_e[1]), 
+            #                                     (ocp.constraints.lbx_e[0], ocp.constraints.lbx_e[1]), 
+            #                                     (ocp.constraints.lbx_e[0], -ocp.constraints.lbx_e[1]), 
+            #                                     (-ocp.constraints.lbx_e[0], -ocp.constraints.lbx_e[1]), 
+            #                                     ])
+            env.vessel.terminal_set = env.vessel.safety_zone
+
+
             #Safe trajectory for rendering
             env.vessel.safe_trajectory = np.ndarray((self.N+1,nx))
 
@@ -201,12 +203,26 @@ class SafetyFilter:
             self.diff_u = new_u - u
             return new_u
 
-      def update(self, state):
+      def update(self, state, obstacles, nav_state):
             """
             Update the current state. 
             """
+            
             self.ocp_solver.set(0, "lbx", state)
             self.ocp_solver.set(0, "ubx", state)
-
+            
+            obs_x = obstacles[0].position[0]
+            obs_y = obstacles[0].position[1]
+            obs_r = obstacles[0].radius
+            ctp_heading = nav_state['target_heading']
+            ctp = nav_state['closest_point']
+            ctp_x = ctp[0]
+            ctp_y = ctp[1]
+            p = np.array([obs_x,obs_y,obs_r,ctp_x,ctp_y,ctp_heading])
+            # for i in range(self.N + 1):
+            #      self.ocp_solver.set(i,'p',p)
+            self.ocp_solver.set(self.N,'p',p)
+            
+            
 
 

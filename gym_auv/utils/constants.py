@@ -42,8 +42,7 @@ D =  np.array([
     [0, -2.5425, 1.422]
 ])  
 
-def B(nu):
-    return np.array([
+B = np.array([
         [1, 0],
         [0, -1.7244],
         [0, 1],
