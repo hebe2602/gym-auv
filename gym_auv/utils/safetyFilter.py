@@ -142,9 +142,11 @@ class SafetyFilter:
             self.p = p0
             ocp.parameter_values = self.p
             ocp.constraints.lh = np.zeros((n_obstacles,))
-            ocp.constraints.uh = 999*np.ones((n_obstacles,))
+            ocp.constraints.uh = 500*np.ones((n_obstacles,))
             ocp.constraints.lh_e = np.zeros((n_obstacles + 1,))
-            ocp.constraints.uh_e = 999*np.ones((n_obstacles + 1,))
+            ocp.constraints.lh_e[-1] = -1
+            ocp.constraints.uh_e = 500*np.ones((n_obstacles + 1,))
+            ocp.constraints.uh_e[-1] = 1
             ocp.constraints.idxsh = np.array(range(n_obstacles))
             ocp.constraints.idxsh_e = np.array(range(n_obstacles + 1))
 

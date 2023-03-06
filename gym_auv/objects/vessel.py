@@ -323,7 +323,7 @@ class Vessel():
 
         #Update safety filter
         if self._use_safety_filter:
-            self.safety_filter.update(self._state, self._nearby_obstacles, self._last_navi_state_dict)
+            self.safety_filter.update(self._state, self._last_navi_state_dict)
 
         self._prev_states = np.vstack([self._prev_states,self._state])
         self._prev_inputs = np.vstack([self._prev_inputs,self._input])
