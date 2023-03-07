@@ -76,10 +76,10 @@ class SafetyFilter:
             ocp.cost.Zu = 0*np.ones((nz,))
             ocp.cost.zl = 100*np.ones((nz,))
             ocp.cost.zu = 100*np.ones((nz,))
-            ocp.cost.Zl_e = 0*np.ones((2,))
-            ocp.cost.Zu_e = 0*np.ones((2,))
-            ocp.cost.zl_e = 100*np.ones((2,))
-            ocp.cost.zu_e = 100*np.ones((2,))
+            ocp.cost.Zl_e = 0*np.ones((nz-2,))
+            ocp.cost.Zu_e = 0*np.ones((nz-2,))
+            ocp.cost.zl_e = 100*np.ones((nz-2,))
+            ocp.cost.zu_e = 100*np.ones((nz-2,))
 
 
             #state constraints

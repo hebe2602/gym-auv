@@ -18,7 +18,7 @@ deg2rad = math.pi/180
 
 class TestScenario0(BaseEnvironment):
     def _generate(self):
-        self.n_obstacles = 1
+        self.n_obstacles = 2
         self.path = Path([[0, 100], [0, 0]])
 
         init_state = self.path(0)
@@ -344,8 +344,9 @@ class DebugScenario(BaseEnvironment):
 class RandomScenario(BaseEnvironment):
     def _generate(self):
         #Random path
+        self.obstacles = []
         path_length = 100
-        self.n_obstacles = 5
+        self.n_obstacles = 3
         self.path = RandomCurveThroughOrigin(self.rng, 3, length=path_length)
         init_state = self.path(0)
         init_angle = self.path.get_direction(0)
@@ -364,13 +365,22 @@ class RandomScenario(BaseEnvironment):
         self.path_prog_hist = np.array([prog])
         self.max_path_prog = prog
 
-        obst_arclength = path_length/n_obstacles
-        obst_radius = 10 
+        obst_radius = 10
+        obst_arclength = 5
         for o in range(self.n_obstacles):
-            obst_arclength += obst_arclength
+
+            obst_arclength += obst_radius*2 + 5
             obst_position = self.path(obst_arclength)
+
             obst_displacement = np.array([obst_radius*(-1)**(o+1), obst_radius])
-            self.obstacles.append(CircularObstacle(obst_position + obst_displacement, obst_radius))
+            obst_position += obst_displacement
+
+            #Ensure that the obstacle is not too close to the path
+            while np.linalg.norm(self.path(self.path.get_closest_arclength(obst_position)) - obst_position) < 1.5*obst_radius:
+                obst_position += np.array([obst_radius*(-1)**(o+1), obst_radius])
+
+            self.obstacles.append(CircularObstacle(obst_position, obst_radius))
+
         
         if safety_filter_rank != -1:
             self.vessel.activate_safety_filter(self, safety_filter_rank)
