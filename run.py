@@ -321,6 +321,8 @@ def main(args):
             video_length=args.recording_length, name_prefix=(args.env if args.video_name == 'auto' else args.video_name)
         )
         obs = recorded_env.reset()
+        #activate safety filter
+        env.vessel.activate_safety_filter(env, 0)
         state = None
         t_steps = 0
         ep_number = 1
@@ -565,13 +567,10 @@ def main(args):
         def callback(_locals, _globals):
             nonlocal n_updates
             nonlocal n_episodes
-
             sys.stdout.write('Training update: {}\r'.format(n_updates))
             sys.stdout.flush()
-
             _self = _locals['self']
             vec_env = _self.get_env()
-
             class Struct(object): pass
             report_env = Struct()
             report_env.history = []
@@ -581,17 +580,14 @@ def main(args):
             report_env.last_episode = vec_env.get_attr('last_episode')[0]
             report_env.config = vec_env.get_attr('config')[0]
             report_env.obstacles = vec_env.get_attr('obstacles')[0]
-
             env_histories = vec_env.get_attr('history')
             for episode in range(max(map(len, env_histories))):
                 for env_idx in range(len(env_histories)):
                     if (episode < len(env_histories[env_idx])):
                         report_env.history.append(env_histories[env_idx][episode])
             report_env.episode = len(report_env.history) + 1
-
             total_t_steps = _self.get_env().get_attr('total_t_steps')[0]*num_cpu
             agent_filepath = os.path.join(agent_folder, str(total_t_steps) + '.pkl')
-
             if model == PPO:
                 recording_criteria = n_updates % 10 == 0
                 report_criteria = True
@@ -608,8 +604,6 @@ def main(args):
                 report_criteria = report_env.episode > n_episodes
                 if save_criteria:
                     _self.save(agent_filepath)
-
-
             if report_env.last_episode is not None and len(report_env.history) > 0 and report_criteria:
                 try:
                     #gym_auv.reporting.plot_trajectory(report_env, fig_dir=scenario_folder, fig_prefix=args.env + '_ep_{}'.format(report_env.episode))
@@ -618,7 +612,6 @@ def main(args):
                 except OSError as e:
                     print("Ignoring reporting OSError:")
                     print(repr(e))
-
             if recording_criteria:
                 if args.pilot:
                     cmd = 'python run.py enjoy {} --agent "{}" --video-dir "{}" --video-name "{}" --recording-length {} --algo {} --pilot {} --envconfig {}{}'.format(
@@ -639,7 +632,7 @@ def main(args):
         ### CALLBACKS ###
         # Things we want to do: calculate statistics, say 1000 times during training.
         total_timesteps = 1000000 #10000000
-        save_stats_freq = total_timesteps // 1000  # Save stats 1000 times during training (EveryNTimesteps)
+        save_stats_freq = total_timesteps // 100  # Save stats 1000 times during training (EveryNTimesteps)
         save_agent_freq = total_timesteps // 100   # Save the agent 100 times throughout training
         record_agent_freq = total_timesteps // 10  # Evaluate and record 10 times during training (EvalCallback)
         # StopTrainingOnRewardThreshold could be used when setting total_timesteps = "inf" and stop the training when the agent is perfect. To see how long it actually takes.
@@ -681,7 +674,7 @@ def main(args):
                 #self.report.history = MaxSizeList(save_stats_freq)
                 self.report = self.vec_env.get_attr("history")[0]
                 for stat in self.report.keys():
-                    self.report[stat] = MaxSizeList(save_stats_freq)
+                    self.report[stat] = []
 
             def _init_callback(self) -> None:
                 # Create folder if needed
@@ -712,8 +705,11 @@ def main(args):
                     stats = np.array(self.vec_env.get_attr("history"))[done_array]
                     for _env in stats:
                         for stat in _env.keys():
-                            self.logger.record('stats/'+stat, _env[stat])
-                            self.report[stat].append(_env[stat])
+                            #self.logger.record('stats/'+stat, _env[stat])
+                            self.report[stat].append(_env[stat][-1])
+
+                if self.num_timesteps % self.save_stats_freq == 0:
+                    gym_auv.reporting.report(self.report, report_dir=figure_folder)
 
                 # Update the progress bar (n_calls is automatically incremented on each step)
                 #self.bar.update(self.num_timesteps)
@@ -765,7 +761,7 @@ def main(args):
         agent.learn(
             total_timesteps=total_timesteps,
             tb_log_name='log',
-            callback=callback
+            callback=callback, 
         )
 
     elif (args.mode in ['policyplot', 'vectorfieldplot', 'streamlinesplot']):
@@ -1071,4 +1067,3 @@ if __name__ == '__main__':
     #except Exception as e:
     #    toaster.show_toast("run.py", "Program has crashed", duration=10)
     #    raise e
-    

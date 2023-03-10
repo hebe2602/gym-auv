@@ -96,19 +96,19 @@ def report(env, report_dir, lastn=100):
         os.makedirs(report_dir, exist_ok=True)
 
         #history, _ = read_hdf5_report(report_dir)
-        history = env.history
+        history = env #env.history
 
         #if lastn >= len(history["episodes"]):
         #    lastn = len(history["episodes"])
-        collisions          = history["collision"][:lastn]
+        collisions          = np.array(history["collision"])
         no_collisions       = collisions == 0
-        cross_track_errors  = history["cross_track_error"][:lastn]
-        progresses          = history["progress"][:lastn]
-        rewards             = history["reward"][:lastn]
-        timesteps           = history["timesteps"][:lastn]
-        durations           = history["duration"][:lastn]
-        pathlengths         = history["pathlength"][:lastn]
-        speeds              = np.array([_path_len / _duration if _duration > 0 else np.nan for (_path_len, _duration) in zip(pathlengths, durations)][:lastn])
+        cross_track_errors  = np.array(history["cross_track_error"])
+        progresses          = np.array(history["progress"])
+        rewards             = np.array(history["reward"])
+        timesteps           = np.array(history["timesteps"])
+        durations           = np.array(history["duration"])
+        pathlengths         = np.array(history["pathlength"])
+        speeds              = np.array([_path_len / _duration if _duration > 0 else np.nan for (_path_len, _duration) in zip(pathlengths, durations)])
 
         with open(os.path.join(report_dir, 'report.txt'), 'w') as f:
             f.write('# PERFORMANCE METRICS (LAST {} EPISODES AVG.)\n'.format(lastn))
@@ -124,7 +124,8 @@ def report(env, report_dir, lastn=100):
             f.write('{:<30}{:<30.2f}\n'.format('Avg. Duration', durations.mean()))
             f.write('{:<30}{:<30.2f}\n'.format('Avg. Pathlength', pathlengths.mean()))
             f.write('{:<30}{:<30.2f}\n'.format('Avg. Speed', speeds.mean()))
-            f.write('{:<30}{:<30.2f}\n'.format('Max. Speed', speeds.max()))
+            if len(speeds) > 0:
+                f.write('{:<30}{:<30.2f}\n'.format('Max. Speed', speeds.max()))
 
 
 
