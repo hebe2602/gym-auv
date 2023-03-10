@@ -1,5 +1,5 @@
 from acados_template import AcadosOcp, AcadosOcpSolver
-from gym_auv.utils.ship_model import export_ship_model
+from gym_auv.utils.ship_model import export_ship_PSF_model
 import numpy as np
 import time
 from casadi import log
@@ -24,7 +24,7 @@ class SafetyFilter:
       """
       Saftey filter class - sets up a predictive safety filter using the acados solver.
       """
-      def __init__(self, env, rank):
+      def __init__(self, env, rank, model_type):
             """
             Initialize the filter with the ship dynamics model, constraints and solver options.
             """
@@ -36,7 +36,7 @@ class SafetyFilter:
             n_obstacles = env.n_obstacles
 
             # set model
-            model = export_ship_model(n_obstacles=n_obstacles)
+            model = export_ship_PSF_model(model_type=model_type, n_obstacles=n_obstacles)
             ocp.model = model
 
             self.N = 50
@@ -44,6 +44,9 @@ class SafetyFilter:
             nx = model.x.size()[0]
             nu = model.u.size()[0]
             ny = nu
+            nh = n_obstacles
+            nb = 3
+            nh_e = n_obstacles + 1
             T_f = self.N*T_s
 
             # set dimensions
@@ -51,19 +54,31 @@ class SafetyFilter:
 
             
 
-            # set cost
+            # set cost type
             ocp.cost.cost_type_0 = 'LINEAR_LS'
 
             Vx_0 = np.zeros((ny,nx))
             ocp.cost.Vx_0 = Vx_0
             Vu_0 = np.eye(ny)
             ocp.cost.Vu_0 = Vu_0
-
+            
+            # Bounds on inputs
             F_u_max = 2.0
             F_r_max = 0.15
+            
+            # cost weights on inputs. Higher penalization on surge-thrust deviation to encourage movement
 
+            gamma_F_u = 1.0
+            gamma_F_r = 1.0e-2
+
+            # Normalizing weight on F_u and F_r
+            F_r_normalization = (1.0/F_r_max)**2
+            F_u_normalization = (1.0/F_u_max)**2
             W_0 = np.eye(ny)
-            W_0[-1,-1] = F_u_max/F_r_max
+            W_0[0,0] = gamma_F_u*F_u_normalization
+            W_0[-1,-1] = gamma_F_r*F_r_normalization
+
+            # Set linear least squares cost matrix
             ocp.cost.W_0 = W_0
             
             u0 = np.array([0,0]) #.reshape(2,1)
@@ -71,15 +86,14 @@ class SafetyFilter:
             ocp.cost.yref_0 = yref_0
 
             #set slack variables cost
-            nz = 4 + (n_obstacles - 1)
-            ocp.cost.Zl = 0*np.ones((nz,))
-            ocp.cost.Zu = 0*np.ones((nz,))
-            ocp.cost.zl = 100*np.ones((nz,))
-            ocp.cost.zu = 100*np.ones((nz,))
-            ocp.cost.Zl_e = 0*np.ones((2,))
-            ocp.cost.Zu_e = 0*np.ones((2,))
-            ocp.cost.zl_e = 100*np.ones((2,))
-            ocp.cost.zu_e = 100*np.ones((2,))
+            ocp.cost.Zl = 0*np.ones((nb + nh,))
+            ocp.cost.Zu = 0*np.ones((nb + nh,))
+            ocp.cost.zl = 100*np.ones((nb + nh,))
+            ocp.cost.zu = 100*np.ones((nb + nh,))
+            ocp.cost.Zl_e = 0*np.ones((nh_e,))
+            ocp.cost.Zu_e = 0*np.ones((nh_e,))
+            ocp.cost.zl_e = 100*np.ones((nh_e,))
+            ocp.cost.zu_e = 100*np.ones((nh_e,))
 
 
             #state constraints
@@ -92,22 +106,9 @@ class SafetyFilter:
             ocp.constraints.idxsbx = np.array([0,1,2])
 
             #input constraints
-            ocp.constraints.lbu = np.array([-F_u_max,-F_r_max])
+            ocp.constraints.lbu = np.array([-0.2,-F_r_max])
             ocp.constraints.ubu = np.array([+F_u_max,+F_r_max])
             ocp.constraints.idxbu = np.array([0,1])
-
-            
-            #terminal set
-            #goal = env.path.end
-            #xy_max_goal = 100
-            #ocp.constraints.lbx_e = np.array([goal[0]-xy_max_goal,goal[1]-xy_max_goal,-uv_max,-uv_max,-r_max])
-            #ocp.constraints.ubx_e = np.array([goal[0]+xy_max_goal,goal[1]+xy_max_goal,+uv_max,+uv_max,+r_max])
-
-            # ocp.constraints.lbx_e = np.array([-xy_max,-xy_max,-uv_max,-uv_max,-r_max])
-            # ocp.constraints.ubx_e = np.array([+xy_max,+xy_max,+uv_max,+uv_max,+r_max])
-            # ocp.constraints.idxbx_e = np.array([0,1,3,4,5])
-            
-            # ocp.constraints.idxsbx_e = np.array([0,1,2,3,4])
             
 
             #Safety zone for rendering
@@ -204,6 +205,7 @@ class SafetyFilter:
 
             new_u = self.ocp_solver.get(0, "u")
             self.diff_u = new_u - u
+            print('Initial u: ',u, ', new u: ', new_u)
             return new_u
 
       def update(self, state, nav_state):
@@ -214,7 +216,7 @@ class SafetyFilter:
             self.ocp_solver.set(0, "lbx", state)
             self.ocp_solver.set(0, "ubx", state)
       
-            ctp_heading = nav_state['target_heading']
+            ctp_heading = nav_state['look_ahead_heading_error']
             ctp = nav_state['closest_point']
             ctp_x = ctp[0]
             ctp_y = ctp[1]

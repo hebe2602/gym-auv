@@ -9,16 +9,20 @@ Y_vdot = -10.0
 Y_rdot = 0.0
 N_rdot = -1.0
 N_vdot = 0.0
-X_u = -2.0
-Y_v = -7.0
-Y_r = -0.1
-N_v = -0.1
+X_u = -0.7225
+Y_v = -0.8612
+Y_r = 0.1079
+N_v = 0.1052
 N_r = -0.5
-X_uu = -1.32742
-Y_vv = -80
-Y_rr = 0.3
-N_vv = -1.5
-N_rr = -9.1
+X_uu = -1.3274
+Y_vv = -36.2823
+Y_rr = -0.02
+Y_rv = -0.01
+Y_vr = -0.01
+N_vv = 5.0437
+N_rr = 0.005
+N_rv = -0.001
+N_vr = -0.001
 Y_uvb = -0.5*1000*np.pi*1.24*(0.15/2)**2
 Y_uvf = -1000*3*0.0064
 Y_urf = -0.4*Y_uvf
@@ -27,6 +31,12 @@ N_uvf = -0.4*Y_uvf
 N_urf = -0.4*Y_urf
 Y_uudr = 19.2
 N_uudr = -0.4*Y_uudr
+X_uuu = -5.8664
+m_11 = m - X_udot
+m_22 = m-Y_v
+m_23 = m*x_g - Y_rdot
+m_32 = m*x_g - N_vdot
+m_33 = I_z - N_rdot
 
 MAX_SPEED = 2
 
@@ -64,8 +74,8 @@ def N(nu):
     v = nu[1]
     r = nu[2]
     N = np.array([
-        [-X_u, 0, 0],
-        [0, -Y_v, m*u - Y_r],
-        [0, -N_v, m*x_g*u-N_r]
+        [2.0, 0, 0],
+        [0, 7.0, m*u + 0.1],
+        [0, 0.1, m*x_g*u + 0.5]
     ])  
     return N

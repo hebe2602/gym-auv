@@ -103,7 +103,7 @@ def play_scenario(env, recorded_env, args, agent=None):
 
     def key_press(k, mod):
         nonlocal autopilot
-        if k == key.DOWN:  key_input[0] = -1
+        if k == key.DOWN:  key_input[0] = 0
         if k == key.UP:    key_input[0] = 1
         if k == key.LEFT:  key_input[1] = 0.5
         if k == key.RIGHT: key_input[1] = -0.5
@@ -132,8 +132,8 @@ def play_scenario(env, recorded_env, args, agent=None):
         if k == key.Q:
             quit = True
             print('quit')
-        if k == key.UP:    key_input[0] = -1
-        if k == key.DOWN:  key_input[0] = -1
+        if k == key.UP:    key_input[0] = 0
+        if k == key.DOWN:  key_input[0] = 0
         if k == key.LEFT and key_input[1] != 0: key_input[1] = 0
         if k == key.RIGHT and key_input[1] != 0: key_input[1] = 0
         if k == key.NUM_2 and key_input[2] != 0: key_input[2] = 0

@@ -12,6 +12,7 @@ from gym_auv.objects.obstacles import LineObstacle
 from gym_auv.objects.path import Path
 
 from gym_auv.utils.safetyFilter import SafetyFilter
+from gym_auv.utils.acadosSimSolver import export_cybership_II_ode_simulator
 
 def _odesolver45(f, y, h):
     """Calculate the next step of an IVP of a time-invariant ODE with a RHS
@@ -157,6 +158,8 @@ class Vessel():
         self._observe_interval = max(1, int(1/self.config["observe_frequency"]))
         self._virtual_environment = None
         self._use_safety_filter = False
+        self._ode_integrator = export_cybership_II_ode_simulator(self.config["t_step_size"],self.config['model_type'])
+        
 
         # Calculating sensor partitioning
         last_isector = -1
@@ -316,9 +319,13 @@ class Vessel():
             self._input = self.safety_filter.filter(self._input, self._state)
             #print("new_input", self._input)
 
-        w, q = _odesolver45(self._state_dot, self._state, self.config["t_step_size"])
-        
-        self._state = q
+        # w, q = _odesolver45(self._state_dot, self._state, self.config["t_step_size"])
+        self._ode_integrator.set('x',self._state)
+        self._ode_integrator.set('u',self._input)
+        ode_status = self._ode_integrator.solve()
+        if ode_status != 0:
+            raise Exception(f'acados returned status {ode_status}.')
+        self._state = self._ode_integrator.get('x')
         self._state[2] = geom.princip(self._state[2])
 
         #Update safety filter
@@ -335,11 +342,11 @@ class Vessel():
         Initializes and activates a safety filter to be used in the vessel step function. 
         """
         self.safety_filter_rank = rank
-        self.safety_filter = SafetyFilter(env, rank)
+        self.safety_filter = SafetyFilter(env, rank,self.config['model_type'])
         self._use_safety_filter = True
 
 
-    def perceive(self, obstacles:list) -> (np.ndarray, np.ndarray):
+    def perceive(self, obstacles:list):
         """
         Simulates the sensor suite and returns observation arrays of the environment.
         
@@ -539,7 +546,7 @@ class Vessel():
         return state_dot
 
     def _thrust_surge(self, surge):
-        surge = np.clip(surge, 0, 1)
+        surge = np.clip(surge, -1, 1)
         return surge*self.config['thrust_max_auv']
 
     def _moment_steer(self, steer):
