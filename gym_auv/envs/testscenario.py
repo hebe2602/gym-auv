@@ -360,6 +360,7 @@ class RandomScenario(BaseEnvironment):
         init_state = self.path(0)
         init_angle = self.path.get_direction(0)
 
+
         #Random state
         #init_state[0] += 50*(self.rng.rand()-0.5)
         #init_state[1] += 50*(self.rng.rand()-0.5)
@@ -390,7 +391,6 @@ class RandomScenario(BaseEnvironment):
 
             self.obstacles.append(CircularObstacle(obst_position, obst_radius))
 
-        
         if safety_filter_rank != -1:
             self.vessel.activate_safety_filter(self, safety_filter_rank)
         

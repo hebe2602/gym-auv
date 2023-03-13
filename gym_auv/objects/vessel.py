@@ -158,6 +158,7 @@ class Vessel():
         self._observe_interval = max(1, int(1/self.config["observe_frequency"]))
         self._virtual_environment = None
         self._use_safety_filter = False
+        self.safety_filter = None
         #self._ode_integrator = export_cybership_II_ode_simulator(self.config["t_step_size"],self.config['model_type'])
         
 

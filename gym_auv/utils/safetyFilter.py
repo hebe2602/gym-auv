@@ -176,9 +176,11 @@ class SafetyFilter:
             # set prediction horizon
             ocp.solver_options.tf = T_f
 
+
             json_file = 'acados_ocp/acados_ocp_' + str(rank) + '.json'
 
             self.ocp_solver = AcadosOcpSolver(ocp, json_file = json_file)
+
             
 
       
@@ -196,7 +198,7 @@ class SafetyFilter:
             # print('Diff between current state and PSF prediction: ', state - curr_pred)
 
             status = self.ocp_solver.solve()
-            #self.ocp_solver.print_statistics() # encapsulates: stat = ocp_solver.get_stats("statistics")
+            #self.ocp_solver.print_statistics() # encapsulates: stat = self.ocp_solver.get_stats("statistics")
 
             for j in range(self.N+1):
                   self.env.vessel.safe_trajectory[j,:] = self.ocp_solver.get(j,'x')
@@ -224,8 +226,8 @@ class SafetyFilter:
             ctp_x = ctp[0]
             ctp_y = ctp[1]
             self.p[-3:] = np.array([ctp_x,ctp_y,ctp_heading])
-            # for i in range(self.N + 1):
-            #      self.ocp_solver.set(i,'p',p)
+            for i in range(self.N + 1):
+                  self.ocp_solver.set(i,'p',self.p)
             self.ocp_solver.set(self.N,'p',self.p)
             
             

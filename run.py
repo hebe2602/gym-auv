@@ -147,6 +147,7 @@ def play_scenario(env, recorded_env, args, agent=None):
         if k == key.NUM_4 and key_input[6] != 0: key_input[6] = 0
         if k == key.NUM_3 and key_input[6] != 0: key_input[6] = 0
 
+
     viewer = env.env._viewer2d if args.render in {'both', '2d'} else env._viewer3d
     viewer.window.on_key_press = key_press
     viewer.window.on_key_release = key_release
@@ -237,9 +238,11 @@ def play_scenario(env, recorded_env, args, agent=None):
             
             env.seed(np.random.randint(1000))
             env.save_latest_episode()
-            gym_auv.reporting.report(env, report_dir='logs/play_results/')
-            gym_auv.reporting.plot_trajectory(figure_folder, env, fig_dir='logs/play_results/')
+            #gym_auv.reporting.report(env, report_dir='logs/play_results/')
+            #gym_auv.reporting.plot_trajectory(figure_folder, env, fig_dir='logs/play_results/')
             env.reset(save_history=False)
+
+            
         
             # if gail_ep_idx >= gail_num_episodes and gail_expert_generation:
             #     gail_observations = np.concatenate(gail_observations).reshape((-1,) + env.observation_space.shape)
@@ -269,7 +272,7 @@ def main(args):
     envconfig.update(custom_envconfig)
 
     #NUM_CPU = multiprocessing.cpu_count()
-    NUM_CPU = 1 #8
+    NUM_CPU = 8 #8
     #torch.set_num_threads(multiprocessing.cpu_count()//4)
     #print("Pytorch using {} threads".format(torch.get_num_threads()))
 
