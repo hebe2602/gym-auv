@@ -158,7 +158,7 @@ class Vessel():
         self._observe_interval = max(1, int(1/self.config["observe_frequency"]))
         self._virtual_environment = None
         self._use_safety_filter = False
-        self._ode_integrator = export_cybership_II_ode_simulator(self.config["t_step_size"],self.config['model_type'])
+        #self._ode_integrator = export_cybership_II_ode_simulator(self.config["t_step_size"],self.config['model_type'])
         
 
         # Calculating sensor partitioning
@@ -319,13 +319,16 @@ class Vessel():
             self._input = self.safety_filter.filter(self._input, self._state)
             #print("new_input", self._input)
 
-        # w, q = _odesolver45(self._state_dot, self._state, self.config["t_step_size"])
-        self._ode_integrator.set('x',self._state)
-        self._ode_integrator.set('u',self._input)
-        ode_status = self._ode_integrator.solve()
-        if ode_status != 0:
-            raise Exception(f'acados returned status {ode_status}.')
-        self._state = self._ode_integrator.get('x')
+        w, q = _odesolver45(self._state_dot, self._state, self.config["t_step_size"])
+        #self._ode_integrator.set('x',self._state)
+        #self._ode_integrator.set('u',self._input)
+        #ode_status = self._ode_integrator.solve()
+        #if ode_status != 0:
+        #    raise Exception(f'acados returned status {ode_status}.')
+        #self._state = self._ode_integrator.get('x')
+        #self._state[2] = geom.princip(self._state[2])
+
+        self._state = q
         self._state[2] = geom.princip(self._state[2])
 
         #Update safety filter

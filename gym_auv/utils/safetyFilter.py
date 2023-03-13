@@ -46,7 +46,7 @@ class SafetyFilter:
             ny = nu
             nh = n_obstacles
             nb = 3
-            nh_e = n_obstacles + 1
+            nh_e = n_obstacles #+ 1
             T_f = self.N*T_s
 
             # set dimensions
@@ -98,7 +98,7 @@ class SafetyFilter:
 
             #state constraints
             uv_max = 2.0
-            r_max = 0.2
+            r_max = 0.15
 
             ocp.constraints.lbx = np.array([-uv_max,-uv_max,-r_max])
             ocp.constraints.ubx = np.array([+uv_max,+uv_max,+r_max])
@@ -106,7 +106,7 @@ class SafetyFilter:
             ocp.constraints.idxsbx = np.array([0,1,2])
 
             #input constraints
-            ocp.constraints.lbu = np.array([-0.2,-F_r_max])
+            ocp.constraints.lbu = np.array([0.0,-F_r_max])
             ocp.constraints.ubu = np.array([+F_u_max,+F_r_max])
             ocp.constraints.idxbu = np.array([0,1])
             
@@ -144,12 +144,15 @@ class SafetyFilter:
             ocp.parameter_values = self.p
             ocp.constraints.lh = np.zeros((n_obstacles,))
             ocp.constraints.uh = 500*np.ones((n_obstacles,))
-            ocp.constraints.lh_e = np.zeros((n_obstacles + 1,))
-            ocp.constraints.lh_e[-1] = -1
-            ocp.constraints.uh_e = 500*np.ones((n_obstacles + 1,))
-            ocp.constraints.uh_e[-1] = 1
+            ocp.constraints.lh_e = np.zeros((n_obstacles,))
+            #ocp.constraints.lh_e = np.zeros((n_obstacles + 1,))
+            #ocp.constraints.lh_e[-1] = -1
+            ocp.constraints.uh_e = 500*np.ones((n_obstacles,))
+            #ocp.constraints.uh_e = 500*np.ones((n_obstacles + 1,))
+            #ocp.constraints.uh_e[-1] = 1
             ocp.constraints.idxsh = np.array(range(n_obstacles))
-            ocp.constraints.idxsh_e = np.array(range(n_obstacles + 1))
+            ocp.constraints.idxsh_e = np.array(range(n_obstacles))
+            #ocp.constraints.idxsh_e = np.array(range(n_obstacles + 1))
 
 
             #initial state
@@ -205,7 +208,7 @@ class SafetyFilter:
 
             new_u = self.ocp_solver.get(0, "u")
             self.diff_u = new_u - u
-            print('Initial u: ',u, ', new u: ', new_u)
+            #print('Initial u: ',u, ', new u: ', new_u)
             return new_u
 
       def update(self, state, nav_state):

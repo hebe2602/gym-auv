@@ -17,6 +17,8 @@ def export_cybership_II_ode_simulator(Ts, model_type = 'simplified'):
     sim.solver_options.num_stages = 4
     sim.solver_options.num_steps = 3
     sim.solver_options.newton_iter = 3 # for implicit integrator
+
+    #json_file='acados_sim.json'
  
     # Create integrator object
     acados_integrator = AcadosSimSolver(sim)
