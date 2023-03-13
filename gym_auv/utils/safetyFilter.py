@@ -46,7 +46,7 @@ class SafetyFilter:
             ny = nu
             nh = n_obstacles
             nb = 3
-            nh_e = n_obstacles + 1
+            nh_e = n_obstacles# + 1
             T_f = self.N*T_s
 
             # set dimensions
@@ -144,12 +144,12 @@ class SafetyFilter:
             ocp.parameter_values = self.p
             ocp.constraints.lh = np.zeros((n_obstacles,))
             ocp.constraints.uh = 500*np.ones((n_obstacles,))
-            ocp.constraints.lh_e = np.zeros((n_obstacles + 1,))
-            ocp.constraints.lh_e[-1] = -1
-            ocp.constraints.uh_e = 500*np.ones((n_obstacles + 1,))
-            ocp.constraints.uh_e[-1] = 1
-            ocp.constraints.idxsh = np.array(range(n_obstacles))
-            ocp.constraints.idxsh_e = np.array(range(n_obstacles + 1))
+            ocp.constraints.lh_e = np.zeros((nh_e,))
+            #ocp.constraints.lh_e[-1] = -1
+            ocp.constraints.uh_e = 500*np.ones((nh_e,))
+            #ocp.constraints.uh_e[-1] = 1
+            ocp.constraints.idxsh = np.array(range(nh_e))
+            ocp.constraints.idxsh_e = np.array(range(nh_e))
 
 
             #initial state
