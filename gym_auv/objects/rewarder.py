@@ -414,7 +414,7 @@ class SafetyColavRewarder(BaseRewarder):
         self.params['collision'] = -1000.0
         self.params['lambda'] = 0.5  # _sample_lambda(scale=0.2)
         self.params['eta'] = 0  # _sample_eta()
-        self.params['gamme_PSF'] = 20
+        self.params['gamme_PSF'] = 10
 
     N_INSIGHTS = 0
 

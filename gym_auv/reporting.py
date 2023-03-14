@@ -112,11 +112,11 @@ def report(env, report_dir, lastn=100):
         speeds              = np.array([_path_len / _duration if _duration > 0 else np.nan for (_path_len, _duration) in zip(pathlengths, durations)])
 
         with open(os.path.join(report_dir, 'report.txt'), 'w') as f:
-            f.write('# PERFORMANCE METRICS (LAST {} EPISODES AVG.)\n'.format(lastn))
+            #f.write('# PERFORMANCE METRICS (LAST {} EPISODES AVG.)\n'.format(lastn))
             f.write('{:<30}{:<30}\n'.format('Episodes', len(pathlengths)))
             f.write('{:<30}{:<30.2f}\n'.format('Avg. Reward', rewards.mean()))
             f.write('{:<30}{:<30.2f}\n'.format('Std. Reward', rewards.std()))
-            f.write('{:<30}{:<30}\n'.format('Goals reached', progresses[progresses > 99.0].size))
+            f.write('{:<30}{:<30}\n'.format('Goals reached', progresses[progresses > 0.99].size))
             f.write('{:<30}{:<30.2%}\n'.format('Avg. Progress', progresses.mean()))
             f.write('{:<30}{:<30.2f}\n'.format('Avg. Collisions', collisions.mean()))
             f.write('{:<30}{:<30.2%}\n'.format('No Collisions', no_collisions.mean()))
@@ -130,7 +130,7 @@ def report(env, report_dir, lastn=100):
 
 
         #write stats to file
-        data = {'rewards': rewards, 'progresses': progresses, 'cross_track_errors': cross_track_errors, 'timesteps': timesteps, 'durations': durations, 'goals_reached':progresses[progresses > 99.0].size}
+        data = {'rewards': rewards, 'progresses': progresses, 'cross_track_errors': cross_track_errors, 'timesteps': timesteps, 'durations': durations, 'goals_reached':progresses[progresses > 0.99].size}
         df = pd.DataFrame(data)
         df.to_csv(os.path.join(report_dir, 'stats.csv'), index=False)
 

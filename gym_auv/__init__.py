@@ -21,7 +21,7 @@ DEFAULT_CONFIG = {
     "min_path_progress": 0.99,                      # Minimum path progress before scenario is considered successful and the episode ended
     
     # ---- SIMULATION ---- #
-    "t_step_size": 0.5,                             # Length of simulation timestep [s]
+    "t_step_size": 1.0, #0.5,                             # Length of simulation timestep [s]
     "sensor_frequency": 1.0,                        # Sensor execution frequency (0.0 = never execute, 1.0 = always execute)
     "observe_frequency": 1.0,                       # Frequency of using actual obstacles instead of virtual ones for detection
 
