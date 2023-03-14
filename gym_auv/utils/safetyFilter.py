@@ -46,7 +46,7 @@ class SafetyFilter:
             ny = nu
             nh = n_obstacles
             nb = 3
-            nh_e = n_obstacles #+ 1
+            nh_e = n_obstacles # + 1
             T_f = self.N*T_s
 
             # set dimensions

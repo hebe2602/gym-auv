@@ -25,6 +25,7 @@ from stable_baselines3.common.callbacks import EveryNTimesteps, EventCallback, B
 import queue
 from collections import deque
 
+
 ### HANNAH
 #from gym_auv.utils.radarCNN import LidarCNN_pretrained, PerceptionNavigationExtractor
 
@@ -635,7 +636,7 @@ def main(args):
         ### CALLBACKS ###
         # Things we want to do: calculate statistics, say 1000 times during training.
         total_timesteps = 1000000 #10000000
-        save_stats_freq = total_timesteps // 1000  # Save stats 1000 times during training (EveryNTimesteps)
+        save_stats_freq = total_timesteps // 100  # Save stats 1000 times during training (EveryNTimesteps)
         save_agent_freq = total_timesteps // 100   # Save the agent 100 times throughout training
         record_agent_freq = total_timesteps // 10  # Evaluate and record 10 times during training (EvalCallback)
         # StopTrainingOnRewardThreshold could be used when setting total_timesteps = "inf" and stop the training when the agent is perfect. To see how long it actually takes.

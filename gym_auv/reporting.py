@@ -25,6 +25,7 @@ from matplotlib import animation
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
 import gym_auv
+import pandas as pd
 
 PLOT_COLOR_TRESHOLD = 500
 SHADOW_LENGTH = 100
@@ -127,6 +128,11 @@ def report(env, report_dir, lastn=100):
             if len(speeds) > 0:
                 f.write('{:<30}{:<30.2f}\n'.format('Max. Speed', speeds.max()))
 
+
+        #write stats to file
+        data = {'rewards': rewards, 'progresses': progresses, 'cross_track_errors': cross_track_errors, 'timesteps': timesteps, 'durations': durations, 'goals_reached':progresses[progresses > 99.0].size}
+        df = pd.DataFrame(data)
+        df.to_csv(os.path.join(report_dir, 'stats.csv'), index=False)
 
 
         plt.style.use('ggplot')
