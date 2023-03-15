@@ -443,7 +443,6 @@ class SafetyColavRewarder(BaseRewarder):
         cross_track_performance = np.exp(-self.params['gamma_y_e'] * np.abs(cross_track_error))
         path_reward = (1 + np.cos(heading_error) * self._vessel.speed / self._vessel.max_speed) * (
                     1 + cross_track_performance) - 1
-
         # Calculating obstacle avoidance reward component
         closeness_penalty_num = 0
         closeness_penalty_den = 0

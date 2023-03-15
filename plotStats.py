@@ -37,8 +37,9 @@ def plot_stats(DIR_PATH, label = None, var = 'rewards', window_size = 50, n_time
 
 #dir_list = ['gamma_1', 'gamma_5', 'gamma_10', 'gamma_20', 'gamma_50', 'No_SF']
 dir_list = ['PSF', 'No_PSF']
+dir_list=['1678811107ppo']
 var_list = ['rewards', 'cross_track_errors', 'progresses', 'timesteps', 'durations']
-var_index = 4
+var_index = 0
 
 for dir in dir_list:
    path = os.path.join('/home/sveinjhu/Documents/Masteroppgave/logs/figures/RandomScenario-v0', dir)
