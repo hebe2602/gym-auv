@@ -45,12 +45,7 @@ M =  np.array([[m - X_udot, 0, 0],
     [0, m*x_g - N_vdot, I_z - N_rdot]]
 )   
 M_inv = np.linalg.inv(M)
-
-D =  np.array([
-    [2.0, 0, 0],
-    [0, 7.0, -2.5425],
-    [0, -2.5425, 1.422]
-])  
+ 
 
 B = np.array([
         [1, 0],
@@ -62,12 +57,32 @@ def C(nu):
     u = nu[0]
     v = nu[1]
     r = nu[2]
+    c_13 = -M[0,0]*v - M[1,2]*r
+    c_23 = M[0,0]*u
     C = np.array([
-        [0, 0, -33.8*v + 11.748*r],
-        [0, 0, 25.8*u],
-        [33.8*v - 11.748*r, -25.8*u, 0]
+        [0,                 0,         c_13],
+        [0,                 0,         c_23],
+        [-c_13,            -c_23,      0]
     ])  
     return C
+
+def D(nu):
+    u = nu[0]
+    v = nu[1]
+    r = nu[2]
+
+    d_11 = -X_u - X_uu * np.abs(u) - X_uuu * u**2
+    d_22 = -Y_v - Y_vv * np.abs(v) - Y_rv * np.abs(r)
+    d_23 = -Y_r - Y_vr * np.abs(v) - Y_rr * np.abs(r)
+    d_32 = -N_v - N_vv * np.abs(v) - N_rv * np.abs(r)
+    d_33 = -N_r - N_vr * np.abs(v) - N_rr * np.abs(r)
+
+    D = np.array([
+        [d_11,  0,    0],
+        [0,     d_22, d_23],
+        [0,     d_32, d_33]
+    ])
+    return D
 
 def N(nu):
     u = nu[0]

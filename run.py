@@ -71,7 +71,7 @@ def make_mp_env(env_id, rank, envconfig, seed=0, pilot=None):
         env.seed(seed + rank)
 
         #activate safety filter with rank
-        env.vessel.activate_safety_filter(env, rank)
+        #env.vessel.activate_safety_filter(env, rank)
         return env
     set_random_seed(seed)
     return _init
