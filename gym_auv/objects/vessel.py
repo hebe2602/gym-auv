@@ -319,13 +319,14 @@ class Vessel():
             self._input = self.safety_filter.filter(self._input, self._state)
             #print("new_input", self._input)
 
-        # w, q = _odesolver45(self._state_dot, self._state, self.config["t_step_size"])
-        self._ode_integrator.set('x',self._state)
-        self._ode_integrator.set('u',self._input)
-        ode_status = self._ode_integrator.solve()
-        if ode_status != 0:
-            raise Exception(f'acados returned status {ode_status}.')
-        self._state = self._ode_integrator.get('x')
+        w, q = _odesolver45(self._state_dot, self._state, self.config["t_step_size"])
+        # self._ode_integrator.set('x',self._state)
+        # self._ode_integrator.set('u',self._input)
+        # ode_status = self._ode_integrator.solve()
+        # if ode_status != 0:
+        #     raise Exception(f'acados returned status {ode_status}.')
+        # self._state = self._ode_integrator.get('x')
+        self._state = q
         self._state[2] = geom.princip(self._state[2])
 
         #Update safety filter
@@ -532,16 +533,25 @@ class Vessel():
         tau = np.array([self._input[0], 0, self._input[1]])
 
         eta_dot = geom.Rzyx(0, 0, geom.princip(psi)).dot(nu)
-        nu_dot = const.M_inv.dot(
-            tau
 
-            ## Realistic:
-            # - const.D.dot(nu)
-            # - const.C(nu).dot(nu)
+        # Use realistic model type
+        if self.config['model_type'] == 'realistic':
+            nu_dot = const.M_inv.dot(
+                tau
 
-            ## Simplified
-            - const.N(nu).dot(nu)
-        )
+                - const.D(nu).dot(nu)
+                - const.C(nu).dot(nu)
+            )
+
+        # Use simplified model type
+        elif self.config['model_type'] == 'simplified':
+            nu_dot = const.M_inv.dot(
+                tau
+
+                - const.N(nu).dot(nu)
+            )
+
+
         state_dot = np.concatenate([eta_dot, nu_dot])
         return state_dot
 

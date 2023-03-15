@@ -212,7 +212,7 @@ class SafetyFilter:
             """
             Update the current state. 
             """
-            
+            print(self.ocp_solver.get(1,'x') - state)
             self.ocp_solver.set(0, "lbx", state)
             self.ocp_solver.set(0, "ubx", state)
       
