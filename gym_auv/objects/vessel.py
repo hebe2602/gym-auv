@@ -311,11 +311,12 @@ class Vessel():
         """
         self._input = np.array([self._thrust_surge(action[0]), self._moment_steer(action[1])])
 
-        
         #Check if safety filter is activated
 
         if self._use_safety_filter:
             #print("old_input", self._input)
+            self.safety_filter.update_obstacles_from_lidar(self._last_sensor_dist_measurements, self._sensor_angles, self._state)
+            self.safety_filter.update(self._state, self._last_navi_state_dict)
             self._input = self.safety_filter.filter(self._input, self._state)
             #print("new_input", self._input)
 
@@ -329,8 +330,8 @@ class Vessel():
         self._state[2] = geom.princip(self._state[2])
 
         #Update safety filter
-        if self._use_safety_filter:
-            self.safety_filter.update(self._state, self._last_navi_state_dict)
+        # if self._use_safety_filter:
+        #     self.safety_filter.update(self._state, self._last_navi_state_dict)
 
         self._prev_states = np.vstack([self._prev_states,self._state])
         self._prev_inputs = np.vstack([self._prev_inputs,self._input])
