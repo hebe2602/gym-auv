@@ -168,3 +168,21 @@ class Env4(MovingObstacles):
         self.displacement_dist_std = 0  # Object distance from path
         self._rewarder_class = PathRewarder
         super().__init__(*args, **kwargs)
+
+
+########################################### SAFETY FILTER ENVS ########################################################
+class RadomScenario2(MovingObstacles):
+    '''
+    Complexity index: 3
+        Path is a straight line in a random direction.
+        Some static obstacles.
+        No moving obstacles.
+    '''
+    def __init__(self, *args, **kwargs):
+        self.straight_path = True
+        self._n_waypoints = -1  # Curve complexity: more waypoints --> more turns. Remove to get random complexity.
+        self._n_moving_obst = 0
+        self._n_static_obst = 4
+        self.displacement_dist_std = 0  # Object distance from path
+        self._rewarder_class = PathRewarder  # ColavRewarder
+        super().__init__(*args, **kwargs)

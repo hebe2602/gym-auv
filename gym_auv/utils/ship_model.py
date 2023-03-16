@@ -185,7 +185,7 @@ def export_ship_PSF_model(model_type = 'simplified', n_obstacles = 1) -> AcadosM
 
     obstacle_constraint_list = []
     for i in range(n_obstacles):
-        obstacle_constraint_list.append(sqrt((x - obs_list[3*i])**2 + (y - obs_list[3*i+1])**2) - obs_list[3*i+2] - 4.0)
+        obstacle_constraint_list.append(sqrt((x - obs_list[3*i])**2 + (y - obs_list[3*i+1])**2) - obs_list[3*i+2] - 5.0)
     con_h_expr = vertcat(*obstacle_constraint_list)
     con_h_expr_e = con_h_expr
     
@@ -214,7 +214,7 @@ def export_ship_PSF_model(model_type = 'simplified', n_obstacles = 1) -> AcadosM
     model.u = F
     model.p = vertcat(state_obs,ctp_x,ctp_y,track_heading)
     model.con_h_expr = con_h_expr
-    model.con_h_expr_e = vertcat(con_h_expr_e) #,terminal_set_expr)
+    model.con_h_expr_e = vertcat(con_h_expr_e, terminal_set_expr)
     model.name = model_name
 
     return model

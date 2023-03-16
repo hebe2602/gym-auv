@@ -391,6 +391,7 @@ class RandomScenario(BaseEnvironment):
 
             self.obstacles.append(CircularObstacle(obst_position, obst_radius))
 
+
         if safety_filter_rank != -1:
             self.vessel.activate_safety_filter(self, safety_filter_rank)
         
