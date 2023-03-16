@@ -6,7 +6,7 @@ from gym_auv.objects.vessel import Vessel
 from gym_auv.objects.path import RandomCurveThroughOrigin, Path
 from gym_auv.objects.obstacles import PolygonObstacle, VesselObstacle, CircularObstacle
 from gym_auv.environment import BaseEnvironment
-from gym_auv.objects.rewarder import ColregRewarder, ColavRewarder, ColavRewarder2, PathRewarder
+from gym_auv.objects.rewarder import ColregRewarder, ColavRewarder, ColavRewarder2, PathRewarder, SafetyColavRewarder
 import shapely.geometry, shapely.errors
 
 import os 
@@ -32,7 +32,7 @@ class MovingObstacles(BaseEnvironment):
         if not hasattr(self, '_n_waypoints'):
             self._n_waypoints = int(np.floor(4*self.rng.rand() + 2))
 
-        self.path = RandomCurveThroughOrigin(self.rng, self._n_waypoints, length=800)
+        self.path = RandomCurveThroughOrigin(self.rng, self._n_waypoints, length=300)
 
         # Initializing vessel
         init_state = self.path(0)
@@ -61,7 +61,6 @@ class MovingObstacles(BaseEnvironment):
                     obst_position[1] + i*obst_speed*np.sin(obst_direction)
                 )))
             other_vessel_obstacle = VesselObstacle(width=obst_radius, trajectory=other_vessel_trajectory)
-
             self.obstacles.append(other_vessel_obstacle)
 
         # Adding static obstacles
@@ -171,7 +170,7 @@ class Env4(MovingObstacles):
 
 
 ########################################### SAFETY FILTER ENVS ########################################################
-class RadomScenario2(MovingObstacles):
+class RandomScenario1(MovingObstacles):
     '''
     Complexity index: 3
         Path is a straight line in a random direction.
@@ -180,9 +179,71 @@ class RadomScenario2(MovingObstacles):
     '''
     def __init__(self, *args, **kwargs):
         self.straight_path = True
-        self._n_waypoints = -1  # Curve complexity: more waypoints --> more turns. Remove to get random complexity.
-        self._n_moving_obst = 0
-        self._n_static_obst = 4
-        self.displacement_dist_std = 0  # Object distance from path
-        self._rewarder_class = PathRewarder  # ColavRewarder
+        self._n_waypoints = 1 # Curve complexity: more waypoints --> more turns. Remove to get random complexity.
+        self.n_moving_obst = 5
+        self.n_static_obst = 1
+        self.displacement_dist_std = 50  # Object distance from path
+        self._rewarder_class = SafetyColavRewarder
         super().__init__(*args, **kwargs)
+        
+        
+    def _generate(self):
+
+        safety_filter_rank = -1
+        if hasattr(self.vessel, 'safety_filter_rank'):
+            safety_filter_rank = self.vessel.safety_filter_rank
+
+        # Initializing path
+        if not hasattr(self, '_n_waypoints'):
+            self._n_waypoints = int(np.floor(4*self.rng.rand() + 2))
+
+        self.path = RandomCurveThroughOrigin(self.rng, self._n_waypoints, length=300)
+
+
+
+        # Initializing vessel
+        init_state = self.path(0)
+        init_angle = self.path.get_direction(0)
+
+        #Random State
+        #init_state[0] += 50*(self.rng.rand()-0.5)
+        #init_state[1] += 50*(self.rng.rand()-0.5)
+        #init_angle = geom.princip(init_angle + 2*np.pi*(self.rng.rand()-0.5))
+
+        self.vessel = Vessel(self.config, np.hstack([init_state, init_angle]), width=self.config["vessel_width"])
+        prog = 0
+        self.path_prog_hist = np.array([prog])
+        self.max_path_prog = prog
+        
+        self.obstacles = []
+
+        # Adding moving obstacles
+        for _ in range(self.n_moving_obst):
+            other_vessel_trajectory = []
+
+            obst_position, obst_radius = helpers.generate_obstacle(self.rng, self.path, self.vessel, obst_radius_mean=10, displacement_dist_std=200)
+            obst_direction = self.rng.rand()*2*np.pi
+            obst_speed = np.random.choice(vessel_speed_vals, p=vessel_speed_density)
+
+            for i in range(10000):
+                other_vessel_trajectory.append((i, (
+                    obst_position[0] + i*obst_speed*np.cos(obst_direction), 
+                    obst_position[1] + i*obst_speed*np.sin(obst_direction)
+                )))
+            other_vessel_obstacle = VesselObstacle(width=obst_radius, trajectory=other_vessel_trajectory)
+            self.obstacles.append(other_vessel_obstacle)
+
+        # Adding static obstacles
+        if not hasattr(self,'displacement_dist_std'):
+            self.displacement_dist_std = 250
+
+        for _ in range(self.n_static_obst):
+            obstacle = CircularObstacle(*helpers.generate_obstacle(self.rng, self.path, self.vessel, displacement_dist_std=self.displacement_dist_std))
+            self.obstacles.append(obstacle)
+
+        self._update()
+
+        #Activate safety filter
+        if safety_filter_rank != -1:
+            self.vessel.activate_safety_filter(self, safety_filter_rank)
+

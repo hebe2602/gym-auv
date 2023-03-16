@@ -214,7 +214,7 @@ def export_ship_PSF_model(model_type = 'simplified', n_obstacles = 1) -> AcadosM
     model.u = F
     model.p = vertcat(state_obs,ctp_x,ctp_y,track_heading)
     model.con_h_expr = con_h_expr
-    model.con_h_expr_e = vertcat(con_h_expr_e, terminal_set_expr)
+    model.con_h_expr_e = vertcat(con_h_expr_e)#, terminal_set_expr)
     model.name = model_name
 
     return model

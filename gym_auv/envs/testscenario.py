@@ -350,12 +350,12 @@ class DebugScenario(BaseEnvironment):
 
 ########################################### SAFETY FILTER ENVS ########################################################
 
-class RandomScenario(BaseEnvironment):
+class RandomScenario0(BaseEnvironment):
     def _generate(self):
         #Random path
         self.obstacles = []
         path_length = 100
-        self.n_obstacles = 3
+        self.n_static_obst = 3
         self.path = RandomCurveThroughOrigin(self.rng, 3, length=path_length)
         init_state = self.path(0)
         init_angle = self.path.get_direction(0)
@@ -377,7 +377,7 @@ class RandomScenario(BaseEnvironment):
 
         obst_radius = 10
         obst_arclength = 5
-        for o in range(self.n_obstacles):
+        for o in range(self.n_static_obst):
 
             obst_arclength += obst_radius*2 + 5
             obst_position = self.path(obst_arclength)

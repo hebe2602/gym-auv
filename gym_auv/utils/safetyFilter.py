@@ -33,21 +33,26 @@ class SafetyFilter:
             ocp.code_export_directory = 'c_generated_code/c_generated_code_' + str(rank)
             self.env = env
             self.diff_u = 0.0
-            n_obstacles = env.n_obstacles
+            self.n_static_obst = env.n_static_obst
+            self.n_moving_obst = 0
+            if hasattr(env, 'n_moving_obst'):
+                  self.n_moving_obst = env.n_moving_obst
+            self.n_obst = self.n_static_obst + self.n_moving_obst
+
 
             # set model
-            model = export_ship_PSF_model(model_type=model_type, n_obstacles=n_obstacles)
+            model = export_ship_PSF_model(model_type=model_type, n_obstacles=self.n_obst)
             ocp.model = model
 
             self.N = 50
-            T_s = 0.5
+            self.T_s = 0.5
             nx = model.x.size()[0]
             nu = model.u.size()[0]
             ny = nu
-            nh = n_obstacles
+            nh = self.n_obst
             nb = 3
-            nh_e = n_obstacles + 1
-            T_f = self.N*T_s
+            nh_e = self.n_obst #+ 1
+            T_f = self.N*self.T_s
 
             # set dimensions
             ocp.dims.N = self.N
@@ -134,25 +139,34 @@ class SafetyFilter:
             env.vessel.safe_trajectory = np.ndarray((self.N+1,nx))
 
 
-            #obstacle constraint
-            p0 = np.zeros((3 + 3*n_obstacles))
-            for i in range(n_obstacles):
-                  p0[3*i:3*i+2] = env.obstacles[i].position
-                  p0[3*i+2] = env.obstacles[i].radius
+            #obstacle constraints
+            self.obstacles = env.obstacles
+            p0 = np.zeros((3 + 3*self.n_obst))
+
+            #Moving obstacles
+            for i in range(self.n_moving_obst):
+                  p0[3*i:3*i+2] = self.obstacles[i].position
+                  p0[3*i+2] = self.obstacles[i].width
+            
+            #Static obstacles
+            for i in range(self.n_moving_obst,self.n_obst):
+                  p0[3*i:3*i+2] = self.obstacles[i].position
+                  p0[3*i+2] = self.obstacles[i].radius
 
             self.p = p0
             ocp.parameter_values = self.p
-            ocp.constraints.lh = np.zeros((n_obstacles,))
-            ocp.constraints.uh = 500*np.ones((n_obstacles,))
-            #ocp.constraints.lh_e = np.zeros((n_obstacles,))
-            ocp.constraints.lh_e = np.zeros((n_obstacles + 1,))
-            ocp.constraints.lh_e[-1] = -1
-            #ocp.constraints.uh_e = 500*np.ones((n_obstacles,))
-            ocp.constraints.uh_e = 500*np.ones((n_obstacles + 1,))
-            ocp.constraints.uh_e[-1] = 1
-            ocp.constraints.idxsh = np.array(range(n_obstacles))
-            #ocp.constraints.idxsh_e = np.array(range(n_obstacles))
-            ocp.constraints.idxsh_e = np.array(range(n_obstacles + 1))
+            ocp.constraints.lh = np.zeros((self.n_obst,))
+            ocp.constraints.uh = 500*np.ones((self.n_obst,))
+            ocp.constraints.lh_e = np.zeros((self.n_obst,))
+            #ocp.constraints.lh_e = np.zeros((self.n_obst + 1,))
+            #ocp.constraints.lh_e[-1] = -1
+            ocp.constraints.uh_e = 500*np.ones((self.n_obst,))
+            #ocp.constraints.uh_e = 500*np.ones((self.n_obst + 1,))
+            #ocp.constraints.uh_e[-1] = 1
+            ocp.constraints.idxsh = np.array(range(self.n_obst))
+            ocp.constraints.idxsh_e = np.array(range(self.n_obst))
+            #ocp.constraints.idxsh_e = np.array(range(self.n_obst + 1))
+            
 
 
             #initial state
@@ -220,16 +234,29 @@ class SafetyFilter:
             
             self.ocp_solver.set(0, "lbx", state)
             self.ocp_solver.set(0, "ubx", state)
-      
+
+
+
+            #Terminal set parameters
             ctp_heading = nav_state['look_ahead_heading_error']
             ctp = nav_state['closest_point']
             ctp_x = ctp[0]
             ctp_y = ctp[1]
             self.p[-3:] = np.array([ctp_x,ctp_y,ctp_heading])
+                  
+            #Moving obstaceles paramters
+            pred_obst_pos = [self.obstacles[i].position for i in range(self.n_moving_obst)]
             for i in range(self.N + 1):
+                  for j in range(self.n_moving_obst):
+                        self.p[3*j:3*j+2] = pred_obst_pos[j]
+
+                        #Predict future position
+                        index = int(np.floor(self.obstacles[j].waypoint_counter))
+                        obst_speed = self.obstacles[j].trajectory_velocities[index]
+                        pred_obst_pos[j] = pred_obst_pos[j] + [self.T_s*obst_speed[k] for k in range(2)]
+
+      
                   self.ocp_solver.set(i,'p',self.p)
-            self.ocp_solver.set(self.N,'p',self.p)
-            
             
 
 

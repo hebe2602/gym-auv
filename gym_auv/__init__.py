@@ -156,8 +156,12 @@ SCENARIOS = {
     },
 
     ###### SAFETY FILTER ENVS #####
-    'RandomScenario-v0': {
-        'entry_point': 'gym_auv.envs:RandomScenario',
+    'RandomScenario0-v0': {
+        'entry_point': 'gym_auv.envs:RandomScenario0',
+        'config': MOVING_CONFIG
+    },
+    'RandomScenario1-v0': {
+        'entry_point': 'gym_auv.envs:RandomScenario1',
         'config': MOVING_CONFIG
     },
 }

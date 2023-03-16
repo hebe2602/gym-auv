@@ -184,7 +184,6 @@ class BaseEnvironment(gym.Env, ABC):
         self._tmp_storage = {
             'cross_track_error': [],
         }
-
         return obs
 
     def observe(self):  # -> np.ndarray:

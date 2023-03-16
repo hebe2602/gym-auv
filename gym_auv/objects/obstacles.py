@@ -154,6 +154,7 @@ class VesselObstacle(BaseObstacle):
         index = int(np.floor(self.waypoint_counter))
 
         if index >= len(self.trajectory_velocities) - 1:
+            print('length of trajectory: ', len(self.trajectory_velocities))
             self.waypoint_counter = 0
             index = 0
             self.position = np.array(self.trajectory[0][1])
