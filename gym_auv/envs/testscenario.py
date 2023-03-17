@@ -18,7 +18,7 @@ deg2rad = math.pi/180
 
 class TestScenario0(BaseEnvironment):
     def _generate(self):
-        self.n_obstacles = 1
+        self.n_static_obst = 1
         self.path = Path([[0, 100], [0, 0]])
 
         init_state = self.path(0)

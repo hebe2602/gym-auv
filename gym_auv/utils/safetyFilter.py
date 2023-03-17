@@ -146,7 +146,7 @@ class SafetyFilter:
             #Moving obstacles
             for i in range(self.n_moving_obst):
                   p0[3*i:3*i+2] = self.obstacles[i].position
-                  p0[3*i+2] = self.obstacles[i].width
+                  p0[3*i+2] = self.obstacles[i].width + 2.0
             
             #Static obstacles
             for i in range(self.n_moving_obst,self.n_obst):
@@ -245,18 +245,27 @@ class SafetyFilter:
             self.p[-3:] = np.array([ctp_x,ctp_y,ctp_heading])
                   
             #Moving obstaceles paramters
+            moving_obst_dist = [np.linalg.norm(state[:2] - moving_obst.position) for moving_obst in self.obstacles[:self.n_moving_obst]]
+            close_obs_idxs = np.where(np.array(moving_obst_dist) < 100)[0]
+            
             pred_obst_pos = [self.obstacles[i].position for i in range(self.n_moving_obst)]
             for i in range(self.N + 1):
                   for j in range(self.n_moving_obst):
-                        self.p[3*j:3*j+2] = pred_obst_pos[j]
 
-                        #Predict future position
-                        index = int(np.floor(self.obstacles[j].waypoint_counter))
-                        obst_speed = self.obstacles[j].trajectory_velocities[index]
-                        pred_obst_pos[j] = pred_obst_pos[j] + [self.T_s*obst_speed[k] for k in range(2)]
+                        #Update obstacle parameters for close obstacles
+                        if j in close_obs_idxs:
+                              self.p[3*j:3*j+2] = pred_obst_pos[j]
+                              self.p[3*j+2] = self.obstacles[j].width + 2.0
 
-      
+                              #Predict future position
+                              index = int(np.floor(self.obstacles[j].waypoint_counter))
+                              obst_speed = self.obstacles[j].trajectory_velocities[index]
+                              pred_obst_pos[j] = pred_obst_pos[j] + [self.T_s*obst_speed[k] for k in range(2)]
+
+                        #Make obstacles far away negligible
+                        else:
+                              self.p[3*j+2] = -5.0
+                 
                   self.ocp_solver.set(i,'p',self.p)
             
-
 

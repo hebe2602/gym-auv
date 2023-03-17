@@ -221,7 +221,7 @@ class RandomScenario1(MovingObstacles):
         for _ in range(self.n_moving_obst):
             other_vessel_trajectory = []
 
-            obst_position, obst_radius = helpers.generate_obstacle(self.rng, self.path, self.vessel, obst_radius_mean=10, displacement_dist_std=200)
+            obst_position, obst_radius = helpers.generate_obstacle(self.rng, self.path, self.vessel, obst_radius_mean=10, displacement_dist_std=20)
             obst_direction = self.rng.rand()*2*np.pi
             obst_speed = np.random.choice(vessel_speed_vals, p=vessel_speed_density)
 
