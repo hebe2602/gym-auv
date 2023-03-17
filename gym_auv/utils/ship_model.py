@@ -82,7 +82,7 @@ def N(nu):
     return N
 
 
-def export_ship_PSF_model(model_type = 'simplified', max_detected_rays = 10) -> AcadosModel:
+def export_ship_PSF_model(model_type = 'simplified', max_detected_rays = 10, n_obstacles = 1, lidar_detection = False) -> AcadosModel:
     """Export AcadosModel for use in predictive safety filter"""
 
     model_name = 'ship_PSF'
@@ -118,12 +118,19 @@ def export_ship_PSF_model(model_type = 'simplified', max_detected_rays = 10) -> 
     F_u = SX.sym('F_u')
     F_r = SX.sym('F_r')
     F = vertcat(F_u,F_r)
-
-    obs_x = SX.sym('obs_x',max_detected_rays)
-    obs_y = SX.sym('obs_y',max_detected_rays)
-    obs_r = SX.sym('obs_r',max_detected_rays)
-    
-    state_obs = vertcat(obs_x,obs_y,obs_r)
+    if lidar_detection:
+        obs_x = SX.sym('obs_x',max_detected_rays)
+        obs_y = SX.sym('obs_y',max_detected_rays)
+        obs_r = SX.sym('obs_r',max_detected_rays)
+        
+        state_obs = vertcat(obs_x,obs_y,obs_r)
+    else: 
+        obs_list = []
+        for i in range(n_obstacles):
+            obs_list.append(SX.sym('x_obs_' + str(i)))
+            obs_list.append(SX.sym('y_obs_' + str(i)))
+            obs_list.append(SX.sym('r_obs_' + str(i)))
+        state_obs = vertcat(*obs_list)
     
     track_heading = SX.sym('track_heading')
     ctp_x = SX.sym('ctp_x')
@@ -183,8 +190,13 @@ def export_ship_PSF_model(model_type = 'simplified', max_detected_rays = 10) -> 
     f_expl = vertcat(eta_expl,nu_expl)
 
     obstacle_constraint_list = []
-    for i in range(max_detected_rays):
-        obstacle_constraint_list.append(sqrt((x - obs_x[i])**2 + (y - obs_y[i])**2) - obs_r[i])
+
+    if lidar_detection:
+        for i in range(max_detected_rays):
+            obstacle_constraint_list.append(sqrt((x - obs_x[i])**2 + (y - obs_y[i])**2) - obs_r[i])
+    else:
+        for i in range(n_obstacles):
+            obstacle_constraint_list.append(sqrt((x - obs_list[3*i])**2 + (y - obs_list[3*i+1])**2) - obs_list[3*i+2] - 5.0)
     con_h_expr = vertcat(*obstacle_constraint_list)
     con_h_expr_e = con_h_expr
     

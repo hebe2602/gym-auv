@@ -41,10 +41,12 @@ class SafetyFilter:
             self.max_detected_rays = max_detected_rays
             self.PSF_max_detect_distance = PSF_max_detect_distance
             self.detected_ray_point_avoidance_radius = 8.0
+            self.lidar_detection = env.config["lidar_obstacle_detetction"]
 
 
             # set model
-            model = export_ship_PSF_model(model_type=model_type, max_detected_rays=self.max_detected_rays, n_obstacles=self.n_obst)
+            model = export_ship_PSF_model(model_type=model_type, max_detected_rays=self.max_detected_rays,
+                                           n_obstacles=self.n_obst, lidar_detection=self.lidar_detection)
             ocp.model = model
 
             self.N = 50
@@ -52,9 +54,13 @@ class SafetyFilter:
             nx = model.x.size()[0]
             nu = model.u.size()[0]
             ny = nu
-            nh = self.n_obst + max_detected_rays
             nb = 3
-            nh_e = self.n_obst + max_detected_rays #+ 1
+            if self.lidar_detection:
+                  nh = max_detected_rays
+                  nh_e = max_detected_rays #+ 1
+            else:
+                  nh = self.n_obst
+                  nh_e = self.n_obst #+ 1
             T_f = self.N*self.T_s
 
             # set dimensions
@@ -142,35 +148,38 @@ class SafetyFilter:
             env.vessel.safe_trajectory = np.ndarray((self.N+1,nx))
 
 
-            #obstacle constraints
-            self.obstacles = env.obstacles
-            p0 = np.zeros((3 + 3*self.n_obst))
 
-            #Moving obstacles
-            for i in range(self.n_moving_obst):
-                  p0[3*i:3*i+2] = self.obstacles[i].position
-                  p0[3*i+2] = self.obstacles[i].width + 2.0
-            
-            #Static obstacles
-            for i in range(self.n_moving_obst,self.n_obst):
-                  p0[3*i:3*i+2] = self.obstacles[i].position
-                  p0[3*i+2] = self.obstacles[i].radius
+            if self.lidar_detection:
+                  #obstacle constraint
+                  # Initialize all obstacle values to 1. Initializing to 0 would result in numerical error in solver because
+                  # derivative of sqrt(x) is undefined for x = 0
+                  p0 = np.ones((3 + 3*max_detected_rays))
+                  
+                  #Set initial parameter values corresponding to obstacle radius to -1. Deactivates constraints
+                  p0[2*max_detected_rays:-3] = -50
+            else:
+                  #obstacle constraints
+                  self.obstacles = env.obstacles
+                  p0 = np.zeros((3 + 3*self.n_obst))
 
-                       #obstacle constraint
-            # Initialize all obstacle values to 1. Initializing to 0 would result in numerical error in solver because
-            # derivative of sqrt(x) is undefined for x = 0
-            p0 = np.ones((3 + 3*max_detected_rays))
-            
-            #Set initial parameter values corresponding to obstacle radius to -1. Deactivates constraints
-            p0[2*max_detected_rays:-3] = -50
+                  #Moving obstacles
+                  for i in range(self.n_moving_obst):
+                        p0[3*i:3*i+2] = self.obstacles[i].position
+                        p0[3*i+2] = self.obstacles[i].width + 2.0
+                  
+                  #Static obstacles
+                  for i in range(self.n_moving_obst,self.n_obst):
+                        p0[3*i:3*i+2] = self.obstacles[i].position
+                        p0[3*i+2] = self.obstacles[i].radius
+
 
             self.p = p0
             ocp.parameter_values = self.p
             ocp.constraints.lh = np.zeros((nh,))
-            ocp.constraints.uh = 100*np.ones((nh,))
+            ocp.constraints.uh = 9999*np.ones((nh,))
             ocp.constraints.lh_e = np.zeros((nh_e,))
             #ocp.constraints.lh_e[-1] = -1
-            ocp.constraints.uh_e = 100*np.ones((nh_e,))
+            ocp.constraints.uh_e = 9999*np.ones((nh_e,))
             #ocp.constraints.uh_e[-1] = 1
             ocp.constraints.idxsh = np.array(range(nh))
             ocp.constraints.idxsh_e = np.array(range(nh_e))
@@ -202,7 +211,6 @@ class SafetyFilter:
 
             self.ocp_solver = AcadosOcpSolver(ocp, json_file = json_file)
 
-            
 
       def update_obstacles_from_lidar(self, ray_dists, ray_angles, state):
            """Return updated obstacle parameter vector based on most recent sensor measurements"""
@@ -228,48 +236,8 @@ class SafetyFilter:
            
            # Sort detected ray distances, we only use the "max_detected_rays" number of closest detected rays 
            sorted_idxs_detected_ray_dists = np.argsort(detected_ray_dists)
-           print(detected_ray_dists[sorted_idxs_detected_ray_dists])
-           print(angles_of_detected_rays[sorted_idxs_detected_ray_dists])
-           
-
-           for idx in sorted_idxs_detected_ray_dists[:self.max_detected_rays]:
-                obs_param_idx = 0
-
-                # Set obstacle x-value
-                obs_param_updated[obs_param_idx] = state[0] + detected_ray_dists[idx]*np.cos(angles_of_detected_rays[idx])
-
-                # Set obstacle y-value
-                obs_param_updated[obs_param_idx + self.max_detected_rays] = state[1] + detected_ray_dists[idx]*np.sin(angles_of_detected_rays[idx])
-
-                # Set obstacle r-value
-                obs_param_updated[obs_param_idx + 2*self.max_detected_rays] = self.detected_ray_point_avoidance_radius
-
-      def update_obstacles_from_lidar(self, ray_dists, ray_angles, state):
-           """Return updated obstacle parameter vector based on most recent sensor measurements"""
-           
-           obs_param_updated = np.ones(3 * self.max_detected_rays)
-           
-           # Last "max_detected_rays" elements of obstacle vector correspond to radius, initialize to -50, same as deactivating constraint
-           obs_param_updated[-self.max_detected_rays] = -50
-
-           # Find indices of sensor_dists less than max detection distance for safety filter
-           detect_idxs = np.where(ray_dists <= self.PSF_max_detect_distance)
-
-           # If no ray detections within PSF_max_distance, return
-           if len(detect_idxs) == 0:
-                self.p = obs_param_updated
-                return
-
-           # Filter out ray detections greater than PSF_max_distance
-           detected_ray_dists = ray_dists[detect_idxs]
-
-           # Add state[2] (heading) to get NED angles of detected rays
-           angles_of_detected_rays = ray_angles[detect_idxs] + state[2]
-           
-           # Sort detected ray distances, we only use the "max_detected_rays" number of closest detected rays 
-           sorted_idxs_detected_ray_dists = np.argsort(detected_ray_dists)
-           print(detected_ray_dists[sorted_idxs_detected_ray_dists])
-           print(angles_of_detected_rays[sorted_idxs_detected_ray_dists])
+           #print(detected_ray_dists[sorted_idxs_detected_ray_dists])
+           #print(angles_of_detected_rays[sorted_idxs_detected_ray_dists])
            
 
            for idx in sorted_idxs_detected_ray_dists[:self.max_detected_rays]:
@@ -287,7 +255,7 @@ class SafetyFilter:
                 obs_param_idx += 1
             
            self.p[:-3] = obs_param_updated
-           return
+
 
       def filter(self, u, state):
             """
@@ -326,37 +294,40 @@ class SafetyFilter:
             self.ocp_solver.set(0, "lbx", state)
             self.ocp_solver.set(0, "ubx", state)
 
-
-
             #Terminal set parameters
             ctp_heading = nav_state['look_ahead_heading_error']
             ctp = nav_state['closest_point']
             ctp_x = ctp[0]
             ctp_y = ctp[1]
             self.p[-3:] = np.array([ctp_x,ctp_y,ctp_heading])
+
+            if self.lidar_detection:
+                  for i in range(self.N + 1):
+                        self.ocp_solver.set(i,'p',self.p)
+
+            #Set moving obstacle parameters
+            else:     
+                  moving_obst_dist = [np.linalg.norm(state[:2] - moving_obst.position) for moving_obst in self.obstacles[:self.n_moving_obst]]
+                  close_obs_idxs = np.where(np.array(moving_obst_dist) < 100)[0]
                   
-            #Moving obstaceles paramters
-            moving_obst_dist = [np.linalg.norm(state[:2] - moving_obst.position) for moving_obst in self.obstacles[:self.n_moving_obst]]
-            close_obs_idxs = np.where(np.array(moving_obst_dist) < 100)[0]
-            
-            pred_obst_pos = [self.obstacles[i].position for i in range(self.n_moving_obst)]
-            for i in range(self.N + 1):
-                  for j in range(self.n_moving_obst):
+                  pred_obst_pos = [self.obstacles[i].position for i in range(self.n_moving_obst)]
+                  for i in range(self.N + 1):
+                        for j in range(self.n_moving_obst):
 
-                        #Update obstacle parameters for close obstacles
-                        if j in close_obs_idxs:
-                              self.p[3*j:3*j+2] = pred_obst_pos[j]
-                              self.p[3*j+2] = self.obstacles[j].width + 2.0
+                              #Update obstacle parameters for close obstacles
+                              if j in close_obs_idxs:
+                                    self.p[3*j:3*j+2] = pred_obst_pos[j]
+                                    self.p[3*j+2] = self.obstacles[j].width + 2.0
 
-                              #Predict future position
-                              index = int(np.floor(self.obstacles[j].waypoint_counter))
-                              obst_speed = self.obstacles[j].trajectory_velocities[index]
-                              pred_obst_pos[j] = pred_obst_pos[j] + [self.T_s*obst_speed[k] for k in range(2)]
+                                    #Predict future position
+                                    index = int(np.floor(self.obstacles[j].waypoint_counter))
+                                    obst_speed = self.obstacles[j].trajectory_velocities[index]
+                                    pred_obst_pos[j] = pred_obst_pos[j] + [self.T_s*obst_speed[k] for k in range(2)]
 
-                        #Make obstacles far away negligible
-                        else:
-                              self.p[3*j+2] = -5.0
-                 
-                  self.ocp_solver.set(i,'p',self.p)
+                              #Make obstacles far away negligible
+                              else:
+                                    self.p[3*j+2] = -5.0
+                  
+                        self.ocp_solver.set(i,'p',self.p)
             
 

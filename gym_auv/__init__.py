@@ -48,7 +48,10 @@ DEFAULT_CONFIG = {
     
     # ---- RENDERING ---- #
     "show_indicators": True,                        # Whether to show debug information on screen during 2d rendering.
-    "autocamera3d": True                            # Whether to let the camera automatically rotate during 3d rendering
+    "autocamera3d": True,                            # Whether to let the camera automatically rotate during 3d rendering
+
+    # ---- SAFETY FILTER ---- #
+    "lidar_obstacle_detetction": True             # Whether to use lidar to detect obstacles in safety filter
 }
 
 MOVING_CONFIG = DEFAULT_CONFIG.copy()
