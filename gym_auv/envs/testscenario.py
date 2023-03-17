@@ -53,8 +53,6 @@ class TestScenario0(BaseEnvironment):
         
 
 
-
-
 class TestScenario1(BaseEnvironment):
     def _generate(self):
         self.n_obstacles = 5
