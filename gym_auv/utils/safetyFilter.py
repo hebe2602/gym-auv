@@ -33,15 +33,17 @@ class SafetyFilter:
             ocp.code_export_directory = 'c_generated_code/c_generated_code_' + str(rank)
             self.env = env
             self.diff_u = 0.0
-            self.n_static_obst = env.n_static_obst
+            self.n_static_obst = 0
             self.n_moving_obst = 0
+            if hasattr(env, 'n_static_obst'):
+                  self.n_static_obst = env.n_static_obst
             if hasattr(env, 'n_moving_obst'):
                   self.n_moving_obst = env.n_moving_obst
             self.n_obst = self.n_static_obst + self.n_moving_obst
             self.max_detected_rays = max_detected_rays
             self.PSF_max_detect_distance = PSF_max_detect_distance
             self.detected_ray_point_avoidance_radius = 8.0
-            self.lidar_detection = env.config["lidar_obstacle_detetction"]
+            self.lidar_detection = env.config["lidar_obstacle_detection"]
 
 
             # set model

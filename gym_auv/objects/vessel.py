@@ -316,7 +316,7 @@ class Vessel():
 
         if self._use_safety_filter:
             #print("old_input", self._input)
-            if self.config["lidar_obstacle_detetction"]:
+            if self.config["lidar_obstacle_detection"]:
                 self.safety_filter.update_obstacles_from_lidar(self._last_sensor_dist_measurements, self._sensor_angles, self._state)
             self.safety_filter.update(self._state, self._last_navi_state_dict)
             self._input = self.safety_filter.filter(self._input, self._state)

@@ -38,7 +38,7 @@ class TestScenario0(BaseEnvironment):
         
 
         obst_arclength = 5
-        for o in range(self.n_obstacles):
+        for o in range(self.n_static_obst):
             obst_radius = 10
             obst_arclength += obst_radius*2 + 30
             obst_position = self.path(obst_arclength)
