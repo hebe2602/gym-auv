@@ -8,6 +8,7 @@ from gym_auv.objects.path import RandomCurveThroughOrigin, Path
 from gym_auv.objects.obstacles import CircularObstacle, VesselObstacle
 from gym_auv.environment import BaseEnvironment
 from gym_auv.objects.rewarder import SafetyColavRewarder
+import gym_auv.utils.helpers as helpers
 
 import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -353,8 +354,9 @@ class RandomScenario0(BaseEnvironment):
         #Random path
         self.obstacles = []
         path_length = 400
-        self.n_static_obst = 3
-        self.path = RandomCurveThroughOrigin(self.rng, 3, length=path_length)
+        self.n_static_obst = 6
+        n_waypoints = 4
+        self.path = RandomCurveThroughOrigin(self.rng, n_waypoints, length=path_length)
         init_state = self.path(0)
         init_angle = self.path.get_direction(0)
 
@@ -373,21 +375,29 @@ class RandomScenario0(BaseEnvironment):
         self.path_prog_hist = np.array([prog])
         self.max_path_prog = prog
 
-        obst_radius = 10
-        obst_arclength = 5
+        #obst_radius = 10
+        #obst_arclength = 5
+
         for o in range(self.n_static_obst):
 
-            obst_arclength += obst_radius*2 + 5
-            obst_position = self.path(obst_arclength)
 
-            obst_displacement = np.array([obst_radius*(-1)**(o+1), obst_radius])
-            obst_position += obst_displacement
+            # obst_arclength += obst_radius*2 + 5
+            # obst_position = self.path(obst_arclength)
+
+            # obst_displacement = np.array([obst_radius*(-1)**(o+1), obst_radius])
+            # obst_position += obst_displacement
+            
+
+            obstacle = CircularObstacle(*helpers.generate_obstacle(self.rng, self.path, self.vessel, displacement_dist_std=100))
+            obst_position = obstacle.position
+            obst_radius = obstacle.radius
 
             #Ensure that the obstacle is not too close to the path
-            while np.linalg.norm(self.path(self.path.get_closest_arclength(obst_position)) - obst_position) < 1.5*obst_radius:
+            while np.linalg.norm(self.path(self.path.get_closest_arclength(obst_position)) - obst_position) < (obst_radius + 10):
                 obst_position += np.array([obst_radius*(-1)**(o+1), obst_radius])
+            self.obstacles.append(obstacle)
 
-            self.obstacles.append(CircularObstacle(obst_position, obst_radius))
+            # self.obstacles.append(CircularObstacle(obst_position, obst_radius))
 
 
         if safety_filter_rank != -1:

@@ -179,10 +179,10 @@ class RandomScenario1(MovingObstacles):
     '''
     def __init__(self, *args, **kwargs):
         self.straight_path = True
-        self._n_waypoints = 1 # Curve complexity: more waypoints --> more turns. Remove to get random complexity.
-        self.n_moving_obst = 5
-        self.n_static_obst = 1
-        self.displacement_dist_std = 50  # Object distance from path
+        self._n_waypoints = 4 # Curve complexity: more waypoints --> more turns. Remove to get random complexity.
+        self.n_moving_obst = 10
+        self.n_static_obst = 4
+        self.displacement_dist_std = 70  # Object distance from path
         self._rewarder_class = SafetyColavRewarder
         super().__init__(*args, **kwargs)
         
@@ -221,7 +221,7 @@ class RandomScenario1(MovingObstacles):
         for _ in range(self.n_moving_obst):
             other_vessel_trajectory = []
 
-            obst_position, obst_radius = helpers.generate_obstacle(self.rng, self.path, self.vessel, obst_radius_mean=10, displacement_dist_std=20)
+            obst_position, obst_radius = helpers.generate_obstacle(self.rng, self.path, self.vessel, obst_radius_mean=10, displacement_dist_std=self.displacement_dist_std)
             obst_direction = self.rng.rand()*2*np.pi
             obst_speed = np.random.choice(vessel_speed_vals, p=vessel_speed_density)
 
@@ -237,8 +237,14 @@ class RandomScenario1(MovingObstacles):
         if not hasattr(self,'displacement_dist_std'):
             self.displacement_dist_std = 250
 
-        for _ in range(self.n_static_obst):
+        for o in range(self.n_static_obst):
             obstacle = CircularObstacle(*helpers.generate_obstacle(self.rng, self.path, self.vessel, displacement_dist_std=self.displacement_dist_std))
+            obst_position = obstacle.position
+            obst_radius = obstacle.radius
+
+            #Ensure that the obstacle is not too close to the path
+            while np.linalg.norm(self.path(self.path.get_closest_arclength(obst_position)) - obst_position) < (obst_radius + 10):
+                obst_position += np.array([obst_radius*(-1)**(o+1), obst_radius])
             self.obstacles.append(obstacle)
 
         self._update()

@@ -70,8 +70,10 @@ def make_mp_env(env_id, rank, envconfig, seed=0, pilot=None):
         env = create_env(env_id, envconfig, pilot=pilot)
         env.seed(seed + rank)
 
-        #activate safety filter with rank
-        env.vessel.activate_safety_filter(env, rank)
+        if envconfig['safety_filter']:
+            #activate safety filter with rank
+            env.vessel.activate_safety_filter(env, rank)
+
         return env
     set_random_seed(seed)
     return _init
@@ -325,8 +327,11 @@ def main(args):
             video_length=args.recording_length, name_prefix=(args.env if args.video_name == 'auto' else args.video_name)
         )
         obs = recorded_env.reset()
-        #activate safety filter
-        env.vessel.activate_safety_filter(env, 0)
+
+        if envconfig['safety_filter']:
+            #activate safety filter
+            env.vessel.activate_safety_filter(env, 0)
+
         state = None
         t_steps = 0
         ep_number = 1
@@ -828,6 +833,10 @@ def main(args):
                 video_length=video_length, name_prefix=video_name_prefix
             )
             active_env = recorded_env if args.video else vec_env
+
+            if envconfig['safety_filter']:
+                #activate safety filter
+                env.vessel.activate_safety_filter(env, 0)
 
             return env, active_env
 
