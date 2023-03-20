@@ -51,7 +51,7 @@ DEFAULT_CONFIG = {
     "autocamera3d": True,                            # Whether to let the camera automatically rotate during 3d rendering
 
     # ---- SAFETY FILTER ---- #
-    "lidar_obstacle_detetction": True             # Whether to use lidar to detect obstacles in safety filter
+    "lidar_obstacle_detetction": False             # Whether to use lidar to detect obstacles in safety filter
 }
 
 MOVING_CONFIG = DEFAULT_CONFIG.copy()

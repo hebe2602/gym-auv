@@ -34,16 +34,17 @@ def plot_stats(df, label = None, var = 'rewards', window_size = 50, n_timesteps 
 
 
 #dir_list = ['gamma_1', 'gamma_5', 'gamma_10', 'gamma_20', 'gamma_50', 'No_SF']
-dir_list = ['PSF', 'No_PSF']
-dir_list=['terminal_set', 'SF_good','realistic_model']
+#dir_list = ['PSF', 'No_PSF']
+#dir_list=['terminal_set', 'SF_good','realistic_model']
+dir_list=['PSF', 'Lidar_detetction']
 
-label_list = ['terminal set', 'no terminal set', 'realistic model no terminal set']
-var_list = ['rewards', 'cross_track_errors', 'progresses', 'timesteps', 'durations']
-var_index = 4
+label_list = ['No_lidar', 'Lidar']
+var_list = ['rewards', 'cross_track_errors', 'progresses', 'timesteps', 'durations','collisions']
+var_index = 0
 
 for i in range(len(dir_list)):
-   path = os.path.join('/home/sveinjhu/Documents/Masteroppgave/logs/figures/RandomScenario-v0', dir_list[i])
-   df = pd.read_csv(os.path.join(path, 'stats.csv')).iloc[:328]
+   path = os.path.join('/home/sveinjhu/Documents/Masteroppgave/logs/figures/RandomScenario0-v0', dir_list[i])
+   df = pd.read_csv(os.path.join(path, 'stats.csv'))
    plot_stats(df, label = label_list[i], var = var_list[var_index], xaxis='episodes')
 
 plt.show()

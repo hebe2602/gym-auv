@@ -352,7 +352,7 @@ class RandomScenario0(BaseEnvironment):
     def _generate(self):
         #Random path
         self.obstacles = []
-        path_length = 100
+        path_length = 400
         self.n_static_obst = 3
         self.path = RandomCurveThroughOrigin(self.rng, 3, length=path_length)
         init_state = self.path(0)

@@ -636,7 +636,7 @@ def main(args):
         ### CALLBACKS ###
         # Things we want to do: calculate statistics, say 1000 times during training.
         total_timesteps = 1000000 #10000000
-        save_stats_freq = total_timesteps // 1000  # Save stats 1000 times during training (EveryNTimesteps)
+        save_stats_freq = total_timesteps // 100  # Save stats 1000 times during training (EveryNTimesteps)
         save_agent_freq = total_timesteps // 100   # Save the agent 100 times throughout training
         record_agent_freq = total_timesteps // 10  # Evaluate and record 10 times during training (EvalCallback)
         # StopTrainingOnRewardThreshold could be used when setting total_timesteps = "inf" and stop the training when the agent is perfect. To see how long it actually takes.
@@ -894,7 +894,7 @@ def main(args):
                     f.write(', '.join(map(str, failed_tests)))
 
             # Thomas: uncomment after fixing logging to HDF5-files in training
-            gym_auv.reporting.report(env, report_dir=report_dir, lastn=100)
+            gym_auv.reporting.report(env.history, report_dir=report_dir, lastn=100)
 
             # gym_auv.reporting.plot_trajectory(env, fig_dir=scenario_folder, fig_prefix=(args.env + '_' + id))
             # env.save(os.path.join(scenario_folder, id))
