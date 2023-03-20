@@ -151,13 +151,15 @@ def play_scenario(env, recorded_env, args, agent=None):
         if k == key.NUM_3 and key_input[6] != 0: key_input[6] = 0
 
 
-    viewer = env.env._viewer2d if args.render in {'both', '2d'} else env._viewer3d
+    viewer = env.env._viewer2d if args.render in {'both', '2d'} else env.viewer3d
     viewer.window.on_key_press = key_press
     viewer.window.on_key_release = key_release
 
     env.reset()
 
-    env.vessel.activate_safety_filter(env, 0)
+    if env.config['safety_filter']:
+        #activate safety filter with rank
+        env.vessel.activate_safety_filter(env, 0)
     try:
         while True:
             t = time()
@@ -191,11 +193,11 @@ def play_scenario(env, recorded_env, args, agent=None):
                     except KeyError:
                         pass
                     if args.render in {'3d', 'both'}:
-                        env._viewer3d.camera_height += 0.15*key_input[3]
-                        env._viewer3d.camera_height = max(0, env._viewer3d.camera_height)
-                        env._viewer3d.camera_distance += 0.3*key_input[4]
-                        env._viewer3d.camera_distance = max(1, env._viewer3d.camera_distance)
-                        env._viewer3d.camera_angle += 0.3*key_input[5]
+                        env.viewer3d.camera_height += 0.15*key_input[3]
+                        env.viewer3d.camera_height = max(0, env.viewer3d.camera_height)
+                        env.viewer3d.camera_distance += 0.3*key_input[4]
+                        env.viewer3d.camera_distance = max(1, env.viewer3d.camera_distance)
+                        env.viewer3d.camera_angle += 0.3*key_input[5]
 
                     elif args.render == '2d':
                         env.env._viewer2d.camera_zoom += 0.1*key_input[4]

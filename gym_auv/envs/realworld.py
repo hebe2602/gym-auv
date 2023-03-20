@@ -166,6 +166,7 @@ class RealWorldEnv(BaseEnvironment):
                     ylow = max(0, y-self.render_distance)
                     yhigh = min(self.all_terrain.shape[1], y+self.render_distance)
                     self._viewer3d.create_world(self.all_terrain, xlow, ylow, xhigh, yhigh, self.x0, self.y0)
+                    self.viewer3d = self._viewer3d
                     if self.verbose:
                         print('Loaded nearby 3D terrain ({}-{}, {}-{})'.format(xlow, xhigh, ylow, yhigh))
 
@@ -212,7 +213,7 @@ class Trondheim(RealWorldEnv):
 
     def _generate(self):
         self.path = Path([[6945-self.x0, 6329-self.x0], [4254-self.y0, 5614-self.y0]])
-        self.obstacle_perimeters = np.load('resources/obstacles_trondheim.npy')
+        self.obstacle_perimeters = np.load('resources/obstacles_trondheim.npy', allow_pickle=True)
         self.all_terrain = np.load(TERRAIN_DATA_PATH)[self.x0:8000, self.y0:6900]/7.5
         super()._generate()
 
@@ -225,7 +226,7 @@ class Trondheimsfjorden(RealWorldEnv):
 
     def _generate(self):
         self.path = Path([[520, 1070, 4080, 5473, 10170, 12220], [3330, 5740, 7110, 4560, 7360, 11390]]) #South-west -> north-east
-        self.obstacle_perimeters = np.load('resources/obstacles_trondheimsfjorden.npy')
+        self.obstacle_perimeters = np.load('resources/obstacles_trondheimsfjorden.npy', allow_pickle=True)
         self.all_terrain = np.load(TERRAIN_DATA_PATH)/7.5 #[3121:4521, 5890:7390]/7.5
         
         super()._generate()

@@ -9,3 +9,4 @@ acados_ocp/*
 logs/play_results/report.txt
 *.json
 *.pkl
+resources/*
