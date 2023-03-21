@@ -189,21 +189,17 @@ def export_ship_PSF_model(model_type = 'simplified', n_obstacles = 1) -> AcadosM
     con_h_expr = vertcat(*obstacle_constraint_list)
     con_h_expr_e = con_h_expr
     
-    track_relative_state = vertcat(
-        sin(track_heading)*(x-ctp_x) + cos(track_heading)*(y-ctp_y),
-        phi - track_heading,
-        u,
-        v,
-        r
-    )
 
-    P_terminal = np.array([[1.0e-2,0.0,0.0,0.0,0.0],
-                           [0.0,4.054e-1,0.0,0.0,0.0],
-                           [0.0,0.0,2.50e-1,0.0,0.0],
-                           [0.0,0.0,0.0,2.50e-1,0.0],
-                           [0.0,0.0,0.0,0.0,2.15e1]])
-    
-    terminal_set_expr = track_relative_state.T@P_terminal@track_relative_state
+    P_nu_terminal = np.eye(3)
+    diag_P_nu = np.array([2.5e-1,2.9e-1,2.45e1])
+    np.fill_diagonal(P_nu_terminal,diag_P_nu)
+
+    u_eq = 0.55
+    nu_eq = vertcat(u-u_eq,
+                    v,
+                    r)
+
+    terminal_set_expr_nu = nu_eq.T@P_nu_terminal@nu_eq
 
     model = AcadosModel()
 
@@ -214,7 +210,7 @@ def export_ship_PSF_model(model_type = 'simplified', n_obstacles = 1) -> AcadosM
     model.u = F
     model.p = vertcat(state_obs,ctp_x,ctp_y,track_heading)
     model.con_h_expr = con_h_expr
-    model.con_h_expr_e = vertcat(con_h_expr_e)#,terminal_set_expr)
+    model.con_h_expr_e = vertcat(con_h_expr_e, terminal_set_expr_nu)
     model.name = model_name
 
     return model
