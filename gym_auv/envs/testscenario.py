@@ -389,12 +389,10 @@ class RandomScenario0(BaseEnvironment):
             
 
             obstacle = CircularObstacle(*helpers.generate_obstacle(self.rng, self.path, self.vessel, displacement_dist_std=100))
-            obst_position = obstacle.position
-            obst_radius = obstacle.radius
 
             #Ensure that the obstacle is not too close to the path
-            while np.linalg.norm(self.path(self.path.get_closest_arclength(obst_position)) - obst_position) < (obst_radius + 10):
-                obst_position += np.array([obst_radius*(-1)**(o+1), obst_radius])
+            while np.linalg.norm(self.path(self.path.get_closest_arclength(obstacle.position)) - obstacle.position) < (obstacle.radius + 10):
+                obstacle = CircularObstacle(*helpers.generate_obstacle(self.rng, self.path, self.vessel, displacement_dist_std=100))
             self.obstacles.append(obstacle)
 
             # self.obstacles.append(CircularObstacle(obst_position, obst_radius))

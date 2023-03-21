@@ -538,16 +538,25 @@ class Vessel():
         tau = np.array([self._input[0], 0, self._input[1]])
 
         eta_dot = geom.Rzyx(0, 0, geom.princip(psi)).dot(nu)
-        nu_dot = const.M_inv.dot(
-            tau
 
-            ## Realistic:
-            # - const.D.dot(nu)
-            # - const.C(nu).dot(nu)
+        # Use realistic model type
+        if self.config['model_type'] == 'realistic':
+            nu_dot = const.M_inv.dot(
+                tau
 
-            ## Simplified
-            - const.N(nu).dot(nu)
-        )
+                - const.D(nu).dot(nu)
+                - const.C(nu).dot(nu)
+            )
+
+        # Use simplified model type
+        elif self.config['model_type'] == 'simplified':
+            nu_dot = const.M_inv.dot(
+                tau
+
+                - const.N(nu).dot(nu)
+            )
+
+
         state_dot = np.concatenate([eta_dot, nu_dot])
         return state_dot
 

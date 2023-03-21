@@ -239,12 +239,10 @@ class RandomScenario1(MovingObstacles):
 
         for o in range(self.n_static_obst):
             obstacle = CircularObstacle(*helpers.generate_obstacle(self.rng, self.path, self.vessel, displacement_dist_std=self.displacement_dist_std))
-            obst_position = obstacle.position
-            obst_radius = obstacle.radius
 
             #Ensure that the obstacle is not too close to the path
-            while np.linalg.norm(self.path(self.path.get_closest_arclength(obst_position)) - obst_position) < (obst_radius + 10):
-                obst_position += np.array([obst_radius*(-1)**(o+1), obst_radius])
+            while np.linalg.norm(self.path(self.path.get_closest_arclength(obstacle.position)) - obstacle.position) < (obstacle.radius + 10):
+                obstacle = CircularObstacle(*helpers.generate_obstacle(self.rng, self.path, self.vessel, displacement_dist_std=self.displacement_dist_std))
             self.obstacles.append(obstacle)
 
         self._update()

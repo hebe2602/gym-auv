@@ -59,10 +59,10 @@ class SafetyFilter:
             nb = 3
             if self.lidar_detection:
                   nh = max_detected_rays
-                  nh_e = max_detected_rays #+ 1
+                  nh_e = max_detected_rays + 1
             else:
                   nh = self.n_obst
-                  nh_e = self.n_obst #+ 1
+                  nh_e = self.n_obst + 1
             T_f = self.N*self.T_s
 
             # set dimensions
@@ -80,7 +80,7 @@ class SafetyFilter:
             
             # Bounds on inputs
             F_u_max = 2.0
-            F_r_max = 0.15
+            F_r_max = 0.2
             
             # cost weights on inputs. Higher penalization on surge-thrust deviation to encourage movement
 
@@ -180,9 +180,9 @@ class SafetyFilter:
             ocp.constraints.lh = np.zeros((nh,))
             ocp.constraints.uh = 9999*np.ones((nh,))
             ocp.constraints.lh_e = np.zeros((nh_e,))
-            #ocp.constraints.lh_e[-1] = -1
+            ocp.constraints.lh_e[-1] = -1
             ocp.constraints.uh_e = 9999*np.ones((nh_e,))
-            #ocp.constraints.uh_e[-1] = 1
+            ocp.constraints.uh_e[-1] = 1
             ocp.constraints.idxsh = np.array(range(nh))
             ocp.constraints.idxsh_e = np.array(range(nh_e))
 
@@ -292,7 +292,7 @@ class SafetyFilter:
             """
             Update the current state. 
             """
-            
+            #print(self.ocp_solver.get(1,'x') - state)
             self.ocp_solver.set(0, "lbx", state)
             self.ocp_solver.set(0, "ubx", state)
 
