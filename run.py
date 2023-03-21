@@ -158,7 +158,7 @@ def play_scenario(env, recorded_env, args, agent=None):
     env.reset()
 
     if env.config['safety_filter']:
-        #activate safety filter with rank
+        #activate safety filter
         env.vessel.activate_safety_filter(env, 0)
     try:
         while True:
