@@ -463,7 +463,7 @@ class SafetyColavRewarder(BaseRewarder):
             closeness_reward = 0
 
         # Calculating living penalty
-        living_penalty = 2.0 #self.params['lambda'] * (2 * self.params["neutral_speed"] + 1) + self.params["eta"] * self.params["neutral_speed"]
+        living_penalty = 1.0 #2.0 #self.params['lambda'] * (2 * self.params["neutral_speed"] + 1) + self.params["eta"] * self.params["neutral_speed"]
 
 
         # Penalizing safety violations

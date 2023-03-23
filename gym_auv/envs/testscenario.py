@@ -353,18 +353,17 @@ class RandomScenario0(BaseEnvironment):
     def _generate(self):
         #Random path
         self.obstacles = []
-        path_length = 400
-        self.n_static_obst = 6
-        n_waypoints = 4
+        path_length = 400 #400
+        self.n_static_obst = 8 #6
+        n_waypoints = int(np.floor(4*self.rng.rand() + 2))#2
         self.path = RandomCurveThroughOrigin(self.rng, n_waypoints, length=path_length)
         init_state = self.path(0)
         init_angle = self.path.get_direction(0)
 
-
         #Random state
-        #init_state[0] += 50*(self.rng.rand()-0.5)
-        #init_state[1] += 50*(self.rng.rand()-0.5)
-        #init_angle = geom.princip(init_angle + 2*np.pi*(self.rng.rand()-0.5))
+        # init_state[0] += 50*(self.rng.rand()-0.5)
+        # init_state[1] += 50*(self.rng.rand()-0.5)
+        # init_angle = geom.princip(init_angle + 2*np.pi*(self.rng.rand()-0.5))
 
         safety_filter_rank = -1
         if hasattr(self.vessel, 'safety_filter_rank'):
@@ -374,29 +373,19 @@ class RandomScenario0(BaseEnvironment):
         prog = self.path.get_closest_arclength(self.vessel.position)
         self.path_prog_hist = np.array([prog])
         self.max_path_prog = prog
-
-        #obst_radius = 10
-        #obst_arclength = 5
+        
+        min_distance_to_path = 10
+        displacement_dist_std = 100 #100
+        obst_radius_mean = 30 #30
 
         for o in range(self.n_static_obst):
 
-
-            # obst_arclength += obst_radius*2 + 5
-            # obst_position = self.path(obst_arclength)
-
-            # obst_displacement = np.array([obst_radius*(-1)**(o+1), obst_radius])
-            # obst_position += obst_displacement
-            
-
-            obstacle = CircularObstacle(*helpers.generate_obstacle(self.rng, self.path, self.vessel, displacement_dist_std=100))
+            obstacle = CircularObstacle(*helpers.generate_obstacle(self.rng, self.path, self.vessel, displacement_dist_std=displacement_dist_std, obst_radius_mean = obst_radius_mean))
 
             #Ensure that the obstacle is not too close to the path
-            while np.linalg.norm(self.path(self.path.get_closest_arclength(obstacle.position)) - obstacle.position) < (obstacle.radius + 10):
-                obstacle = CircularObstacle(*helpers.generate_obstacle(self.rng, self.path, self.vessel, displacement_dist_std=100))
+            while np.linalg.norm(self.path(self.path.get_closest_arclength(obstacle.position)) - obstacle.position) < (obstacle.radius + min_distance_to_path):
+                obstacle = CircularObstacle(*helpers.generate_obstacle(self.rng, self.path, self.vessel, displacement_dist_std=displacement_dist_std, obst_radius_mean = obst_radius_mean))
             self.obstacles.append(obstacle)
-
-            # self.obstacles.append(CircularObstacle(obst_position, obst_radius))
-
 
         if safety_filter_rank != -1:
             self.vessel.activate_safety_filter(self, safety_filter_rank)

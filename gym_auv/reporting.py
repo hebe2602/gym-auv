@@ -66,7 +66,8 @@ def read_hdf5_report(report_dir):
         'timesteps'             : [],
         'durations'             : [],
         'pathlengths'           : [],
-        'speeds'                : []
+        'speeds'                : [], 
+        'infeasible_solution'   : []
     }
 
     for row in history_table.iterrows():
@@ -98,7 +99,6 @@ def report(env, report_dir, lastn=100):
 
         #history, _ = read_hdf5_report(report_dir)
         history = env #env.history
-
         #if lastn >= len(history["episodes"]):
         #    lastn = len(history["episodes"])
         collisions          = np.array(history["collision"])
@@ -110,6 +110,8 @@ def report(env, report_dir, lastn=100):
         durations           = np.array(history["duration"])
         pathlengths         = np.array(history["pathlength"])
         speeds              = np.array([_path_len / _duration if _duration > 0 else np.nan for (_path_len, _duration) in zip(pathlengths, durations)])
+        infeasible_solution = np.array(history["infeasible_solution"])
+
 
         with open(os.path.join(report_dir, 'report.txt'), 'w') as f:
             #f.write('# PERFORMANCE METRICS (LAST {} EPISODES AVG.)\n'.format(lastn))
@@ -127,6 +129,11 @@ def report(env, report_dir, lastn=100):
             f.write('{:<30}{:<30.2f}\n'.format('Avg. Speed', speeds.mean()))
             if len(speeds) > 0:
                 f.write('{:<30}{:<30.2f}\n'.format('Max. Speed', speeds.max()))
+            if len(infeasible_solution) > 0:
+                print('infeasible_solution', infeasible_solution)
+                f.write('{:<30}{:<30}\n'.format('Infeasible Solutions', infeasible_solution.sum()))
+
+                
 
 
         #write stats to file

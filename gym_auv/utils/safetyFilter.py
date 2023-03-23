@@ -190,6 +190,7 @@ class SafetyFilter:
             #initial state
             ocp.constraints.x0 = np.array(env.vessel._state)
 
+
             # set options
             ocp.solver_options.qp_solver = 'PARTIAL_CONDENSING_HPIPM' # FULL_CONDENSING_QPOASES
             # PARTIAL_CONDENSING_HPIPM, FULL_CONDENSING_QPOASES, FULL_CONDENSING_HPIPM,
@@ -265,27 +266,34 @@ class SafetyFilter:
 
             Returns the calculated optimal input u0. 
             """      
-
             self.ocp_solver.cost_set(0,"yref",u)
+
 
             # print('Current state: ', state)
             # curr_pred = self.ocp_solver.get(1,'x')
             # print('Diff between current state and PSF prediction: ', state - curr_pred)
-
             status = self.ocp_solver.solve()
+
             #self.ocp_solver.print_statistics() # encapsulates: stat = self.ocp_solver.get_stats("statistics")
 
             for j in range(self.N+1):
                   self.env.vessel.safe_trajectory[j,:] = self.ocp_solver.get(j,'x')
 
             if status != 0:
-                  for i in range(self.N):
-                       print(i, ': x: ', self.ocp_solver.get(i,'x'), ', u: ', self.ocp_solver.get(i,'u'))
-                  raise Exception(f'acados returned status {status}.')
+                  # for i in range(self.N):
+                  #      print(i, ': x: ', self.ocp_solver.get(i,'x'), ', u: ', self.ocp_solver.get(i,'u'))
+                  #raise Exception(f'acados returned status {status}.')
 
-            new_u = self.ocp_solver.get(0, "u")
+                  # If acados returns error, return original input and disable safety filter
+                  self.env.history['infeasible_solution'] = np.array([1])
+                  print('Infeasible solution, returning original input and disabling safety filter.')
+                  self.env.vessel._use_safety_filter = False
+                  return u
+            else:
+                  new_u = self.ocp_solver.get(0, "u")
+
             self.diff_u = new_u - u
-            #print('Initial u: ',u, ', new u: ', new_u)
+            #print('Initial u: ',u, ', new u: ', new_u, ', diff: ', self.diff_u)
             return new_u
 
       def update(self, state, nav_state):

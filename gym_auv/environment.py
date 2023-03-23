@@ -66,7 +66,8 @@ class BaseEnvironment(gym.Env, ABC):
                                       'timesteps',
                                       'duration',
                                       'progress',
-                                      'pathlength'
+                                      'pathlength',
+                                      'infeasible_solution',
                                       ], np.array([]))
         #self.history = []
 
@@ -325,6 +326,7 @@ class BaseEnvironment(gym.Env, ABC):
             'path_taken': np.array(self.vessel.path_taken),
             'obstacles': np.array(self.obstacles)
         }
+
         if save_history:
             stats = {
                 'cross_track_error': np.array(self._tmp_storage['cross_track_error']).mean(),
@@ -334,7 +336,8 @@ class BaseEnvironment(gym.Env, ABC):
                 'timesteps': self.t_step,
                 'duration': self.t_step*self.config["t_step_size"],
                 'progress': self.progress,
-                'pathlength': self.path.length
+                'pathlength': self.path.length,
+                'infeasible_solution': [],
             }
             for key in self.history.keys():
                 self.history[key] = np.append(self.history[key], stats[key])

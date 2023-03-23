@@ -643,7 +643,7 @@ def main(args):
         ### CALLBACKS ###
         # Things we want to do: calculate statistics, say 1000 times during training.
         total_timesteps = 1000000 #10000000
-        save_stats_freq = total_timesteps // 100  # Save stats 1000 times during training (EveryNTimesteps)
+        save_stats_freq = total_timesteps // 1000  # Save stats 1000 times during training (EveryNTimesteps)
         save_agent_freq = total_timesteps // 100   # Save the agent 100 times throughout training
         record_agent_freq = total_timesteps // 10  # Evaluate and record 10 times during training (EvalCallback)
         # StopTrainingOnRewardThreshold could be used when setting total_timesteps = "inf" and stop the training when the agent is perfect. To see how long it actually takes.
@@ -717,7 +717,8 @@ def main(args):
                     for _env in stats:
                         for stat in _env.keys():
                             #self.logger.record('stats/'+stat, _env[stat])
-                            self.report[stat].append(_env[stat][-1])
+                            if len(_env[stat]) > 0:
+                                self.report[stat].append(_env[stat][-1])
 
                 if self.num_timesteps % self.save_stats_freq == 0:
                     gym_auv.reporting.report(self.report, report_dir=figure_folder)
