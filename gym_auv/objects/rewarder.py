@@ -414,7 +414,7 @@ class SafetyColavRewarder(BaseRewarder):
         self.params['collision'] = -1000.0
         self.params['lambda'] = 0.5  # _sample_lambda(scale=0.2)
         self.params['eta'] = 0  # _sample_eta()
-        self.params['gamme_PSF'] = 10
+        self.params['gamme_PSF'] = 5
 
     N_INSIGHTS = 0
 
@@ -443,6 +443,8 @@ class SafetyColavRewarder(BaseRewarder):
         cross_track_performance = np.exp(-self.params['gamma_y_e'] * np.abs(cross_track_error))
         path_reward = (1 + np.cos(heading_error) * self._vessel.speed / self._vessel.max_speed) * (
                     1 + cross_track_performance) - 1
+
+        #print("path reward: ", path_reward, "cross track performance: ", cross_track_performance, "speed_performance: ", self._vessel.speed / self._vessel.max_speed)
         # Calculating obstacle avoidance reward component
         closeness_penalty_num = 0
         closeness_penalty_den = 0
@@ -469,7 +471,7 @@ class SafetyColavRewarder(BaseRewarder):
         # Penalizing safety violations
         if self._vessel._use_safety_filter:
             safety_violation_penalty = -self.params['gamme_PSF']*(abs(self._vessel.safety_filter.diff_u[0]/self._vessel.config['thrust_max_auv']) + \
-                                   abs(self._vessel.safety_filter.diff_u[1]/self._vessel.config['moment_max_auv']))
+                                   abs(self._vessel.safety_filter.diff_u[1]/2*self._vessel.config['moment_max_auv']))
             #print("Safety violation", safety_violation_penalty)
             #safety_violation_penalty = 0
         else:

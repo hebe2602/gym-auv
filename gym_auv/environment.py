@@ -5,7 +5,7 @@ from gym.utils import seeding
 from gym_auv.objects.vessel import Vessel
 from gym_auv.objects.rewarder import ColavRewarder, PathRewarder
 import gym_auv.rendering.render2d as render2d
-import gym_auv.rendering.render3d as render3d
+#import gym_auv.rendering.render3d as render3d
 from abc import ABC, abstractmethod
 
 import tables
@@ -111,14 +111,15 @@ class BaseEnvironment(gym.Env, ABC):
         # Initializing rendering
         self._viewer2d = None
         self._viewer3d = None
-        if self.render_mode == '2d' or self.render_mode == 'both':
-            render2d.init_env_viewer(self)
-        if self.render_mode == '3d' or self.render_mode == 'both':
-            if self.config['render_distance'] == 'random':
-                self.render_distance = self.rng.randint(300, 2000)
-            else:
-                self.render_distance = self.config['render_distance']
-            render3d.init_env_viewer(self, autocamera=self.config["autocamera3d"], render_dist=self.render_distance)
+        if not env_config['SSH']:
+            if self.render_mode == '2d' or self.render_mode == 'both':
+                render2d.init_env_viewer(self)
+            if self.render_mode == '3d' or self.render_mode == 'both':
+                if self.config['render_distance'] == 'random':
+                    self.render_distance = self.rng.randint(300, 2000)
+                else:
+                    self.render_distance = self.config['render_distance']
+                render3d.init_env_viewer(self, autocamera=self.config["autocamera3d"], render_dist=self.render_distance)
 
         self.reset()
         print("BaseEnvironment init complete")

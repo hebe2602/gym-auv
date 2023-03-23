@@ -52,7 +52,8 @@ DEFAULT_CONFIG = {
 
     # ---- SAFETY FILTER ---- #
     "safety_filter": True,                         # Whether to use safety filter
-    "lidar_obstacle_detection": True             # Whether to use lidar to detect obstacles in safety filter
+    "lidar_obstacle_detection": True,             # Whether to use lidar to detect obstacles in safety filter
+    "SSH": False                                    # Disable graphics to start training with SSH
 }
 
 MOVING_CONFIG = DEFAULT_CONFIG.copy()

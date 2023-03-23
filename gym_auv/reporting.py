@@ -132,6 +132,8 @@ def report(env, report_dir, lastn=100):
             if len(infeasible_solution) > 0:
                 print('infeasible_solution', infeasible_solution)
                 f.write('{:<30}{:<30}\n'.format('Infeasible Solutions', infeasible_solution.sum()))
+            else:
+                f.write('{:<30}{:<30}\n'.format('Infeasible Solutions', 0))
 
                 
 
