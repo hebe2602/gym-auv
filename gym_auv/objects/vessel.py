@@ -315,12 +315,13 @@ class Vessel():
         #Check if safety filter is activated
 
         if self._use_safety_filter:
-            #print("old_input", self._input)
+            if self.safety_filter.infeasible_solution:
+                print('creating new safety filter')
+                self.safety_filter = SafetyFilter(self.safety_filter.env, self.safety_filter.rank, self.config['model_type'])
             if self.config["lidar_obstacle_detection"]:
                 self.safety_filter.update_obstacles_from_lidar(self._last_sensor_dist_measurements, self._sensor_angles, self._state)
             self.safety_filter.update(self._state, self._last_navi_state_dict)
             self._input = self.safety_filter.filter(self._input, self._state)
-            #print("new_input", self._input)
 
         w, q = _odesolver45(self._state_dot, self._state, self.config["t_step_size"])
         #self._ode_integrator.set('x',self._state)
@@ -334,10 +335,6 @@ class Vessel():
         self._state = q
         self._state[2] = geom.princip(self._state[2])
 
-        #Update safety filter
-        # if self._use_safety_filter:
-        #     self.safety_filter.update(self._state, self._last_navi_state_dict)
-
         self._prev_states = np.vstack([self._prev_states,self._state])
         self._prev_inputs = np.vstack([self._prev_inputs,self._input])
 
@@ -348,7 +345,7 @@ class Vessel():
         Initializes and activates a safety filter to be used in the vessel step function. 
         """
         self.safety_filter_rank = rank
-        self.safety_filter = SafetyFilter(env, rank,self.config['model_type'])
+        self.safety_filter = SafetyFilter(env, rank, self.config['model_type'])
         self._use_safety_filter = True
 
 

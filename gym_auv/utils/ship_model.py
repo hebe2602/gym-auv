@@ -196,7 +196,7 @@ def export_ship_PSF_model(model_type = 'simplified', max_detected_rays = 10, n_o
             obstacle_constraint_list.append(sqrt((x - obs_x[i])**2 + (y - obs_y[i])**2) - obs_r[i])
     else:
         for i in range(n_obstacles):
-            obstacle_constraint_list.append(sqrt((x - obs_list[3*i])**2 + (y - obs_list[3*i+1])**2) - obs_list[3*i+2] - 5.0)
+            obstacle_constraint_list.append(sqrt((x - obs_list[3*i])**2 + (y - obs_list[3*i+1])**2) - obs_list[3*i+2] - 7.0)
     con_h_expr = vertcat(*obstacle_constraint_list)
     con_h_expr_e = con_h_expr
     

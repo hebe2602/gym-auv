@@ -479,18 +479,17 @@ def _render_obstacles(env):
         elif isinstance(obst, VesselObstacle):
             env._viewer2d.draw_shape(list(obst.boundary.exterior.coords), color=c)
 
-#create square safety zone for rendenring
-
 
 def _render_safety_zone(env):
 
     #render safety zone
-    if isinstance(env.vessel.safety_zone, Polygon): 
-        env._viewer2d.draw_shape(list(env.vessel.safety_zone.exterior.coords), color=(0.3, 0.8, 0.3, 0.2))
+    #if isinstance(env.vessel.safety_zone, Polygon): 
+        #env._viewer2d.draw_shape(list(env.vessel.safety_zone.exterior.coords), color=(0.3, 0.8, 0.3, 0.2))
     
     #render terminal set
-    if isinstance(env.vessel.terminal_set, Polygon):
-        env._viewer2d.draw_shape(list(env.vessel.terminal_set.exterior.coords), color=(0.8, 0.3, 0.8, 0.2))
+    #if isinstance(env.vessel.terminal_set, Polygon):
+         #env._viewer2d.draw_shape(list(env.vessel.terminal_set.exterior.coords), color=(0.8, 0.3, 0.8, 0.2))
+    #     print("terminal set", env.vessel.safety_zone)
 
     #render safe trajectory
     env._viewer2d.draw_polyline(env.vessel.safe_trajectory[:,0:2], linewidth=2, color=(0.8, 0.3, 0.3, 0.8))
@@ -500,7 +499,6 @@ def _render_safety_zone(env):
 def _render_tiles(env, win):
     global env_bg
     global bg
-
     if env_bg is None:
         # Initialise background
         from pyglet.gl.gl import GLubyte

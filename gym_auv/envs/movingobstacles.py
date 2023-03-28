@@ -180,9 +180,9 @@ class RandomScenario1(MovingObstacles):
     def __init__(self, *args, **kwargs):
         self.straight_path = True
         self._n_waypoints = 4 # Curve complexity: more waypoints --> more turns. Remove to get random complexity.
-        self.n_moving_obst = 10
-        self.n_static_obst = 4
-        self.displacement_dist_std = 100
+        self.n_moving_obst = 12
+        self.n_static_obst = 5
+        self.displacement_dist_std = 300
         self._rewarder_class = SafetyColavRewarder
         super().__init__(*args, **kwargs)
         
@@ -197,7 +197,7 @@ class RandomScenario1(MovingObstacles):
         if not hasattr(self, '_n_waypoints'):
             self._n_waypoints = int(np.floor(4*self.rng.rand() + 2))
 
-        self.path = RandomCurveThroughOrigin(self.rng, self._n_waypoints, length=300)
+        self.path = RandomCurveThroughOrigin(self.rng, self._n_waypoints, length=400)
 
 
 
@@ -216,9 +216,9 @@ class RandomScenario1(MovingObstacles):
         self.max_path_prog = prog
 
         min_distance_to_path = 10
-        displacement_dist_std = 100
-        static_obst_radius_mean = 30
-        moving_obst_radius_mean = 10
+        displacement_dist_std = 300
+        static_obst_radius_mean = 50
+        moving_obst_radius_mean = 30
         
         self.obstacles = []
 
@@ -244,8 +244,8 @@ class RandomScenario1(MovingObstacles):
             obstacle = CircularObstacle(*helpers.generate_obstacle(self.rng, self.path, self.vessel, displacement_dist_std=self.displacement_dist_std, obst_radius_mean=static_obst_radius_mean))
 
             #Ensure that the obstacle is not too close to the path
-            while np.linalg.norm(self.path(self.path.get_closest_arclength(obstacle.position)) - obstacle.position) < (obstacle.radius + min_distance_to_path):
-                obstacle = CircularObstacle(*helpers.generate_obstacle(self.rng, self.path, self.vessel, displacement_dist_std=self.displacement_dist_std))
+            # while np.linalg.norm(self.path(self.path.get_closest_arclength(obstacle.position)) - obstacle.position) < (obstacle.radius + min_distance_to_path):
+            #     obstacle = CircularObstacle(*helpers.generate_obstacle(self.rng, self.path, self.vessel, displacement_dist_std=self.displacement_dist_std))
             self.obstacles.append(obstacle)
 
         self._update()

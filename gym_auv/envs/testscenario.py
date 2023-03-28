@@ -353,9 +353,9 @@ class RandomScenario0(BaseEnvironment):
     def _generate(self):
         #Random path
         self.obstacles = []
-        path_length = 8000 #400
-        self.n_static_obst = 8 #6
-        n_waypoints = int(np.floor(2*self.rng.rand() + 1))#2
+        path_length = 1000 #400
+        self.n_static_obst = 20 #6
+        n_waypoints = 2 #int(np.floor(2*self.rng.rand() + 1))#2
         self.path = RandomCurveThroughOrigin(self.rng, n_waypoints, length=path_length)
         init_state = self.path(0)
         init_angle = self.path.get_direction(0)
@@ -375,10 +375,10 @@ class RandomScenario0(BaseEnvironment):
         self.max_path_prog = prog
         
         #min_distance_to_path = 20
-        displacement_dist_std = 300 #100
-        obst_radius_mean = 50 #30
+        displacement_dist_std = 150 #100
+        obst_radius_mean = 30 #30
 
-        for o in range(self.n_static_obst):
+        for _ in range(self.n_static_obst):
 
             obstacle = CircularObstacle(*helpers.generate_obstacle(self.rng, self.path, self.vessel, displacement_dist_std=displacement_dist_std, obst_radius_mean = obst_radius_mean))
 
@@ -388,6 +388,7 @@ class RandomScenario0(BaseEnvironment):
             self.obstacles.append(obstacle)
 
         if safety_filter_rank != -1:
+            del self.vessel.safety_filter
             self.vessel.activate_safety_filter(self, safety_filter_rank)
         
         self._rewarder_class = SafetyColavRewarder
