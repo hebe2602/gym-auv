@@ -645,7 +645,7 @@ def main(args):
         total_timesteps = 2000000 #10000000
         save_stats_freq = total_timesteps // 100  # Save stats 1000 times during training (EveryNTimesteps)
         save_agent_freq = total_timesteps // 100   # Save the agent 100 times throughout training
-        record_agent_freq = total_timesteps // 10  # Evaluate and record 10 times during training (EvalCallback)
+        record_agent_freq = total_timesteps // 1  # Evaluate and record 10 times during training (EvalCallback)
         # StopTrainingOnRewardThreshold could be used when setting total_timesteps = "inf" and stop the training when the agent is perfect. To see how long it actually takes.
         # CallbackList : [list, of, sequential, callbacks]
 
@@ -801,8 +801,9 @@ def main(args):
 
         else:
             env = create_env(env_id, envconfig, test_mode=True, pilot=args.pilot)
-            #with open(os.path.join(figure_folder, 'config.json'), 'w') as f:
-                #json.dump(env.config, f)
+            print(type(env.config))
+            with open(os.path.join(figure_folder, 'config.json'), 'w') as f:
+                json.dump(env.config, f)
 
             if args.mode == 'policyplot':
                 gym_auv.reporting.plot_actions(env, agent, fig_dir=figure_folder)
@@ -849,6 +850,9 @@ def main(args):
 
             if env is None or active_env is None:
                 env, active_env = create_test_env(video_name_prefix=args.env + '_'  + id)
+                if envconfig['safety_filter']:
+                    #activate safety filter
+                    env.vessel.activate_safety_filter(env, 0)
 
             if scenario is not None:
                 obs = active_env.reset()
@@ -921,7 +925,6 @@ def main(args):
         if args.testvals:
             testvals = json.load(open(args.testvals, 'r'))
             valuegrid = list(ParameterGrid(testvals))
-
         if args.scenario:
             if args.testvals:
                 episode_dict = {}
@@ -945,25 +948,49 @@ def main(args):
                 run_test("ep0", reset=True, scenario=args.scenario, max_t_steps=5000)
 
         else:
-            if args.testvals:
-                episode_dict = {}
-                agent_index = 1
-                for valuedict in valuegrid:
-                    customconfig = envconfig.copy()
-                    customconfig.update(valuedict)
-                    env, active_env = create_test_env(envconfig=customconfig)
-                    valuedict_str = '_'.join((key + '-' + str(val) for key, val in valuedict.items()))
+            safety_filter_comparison = True
+            agents = ['10000.pkl', '100000.pkl', '500000.pkl']
+            agent_path = args.agent[:-9]
 
-                    colorval = np.log10(valuedict['reward_lambda']) #should be general
-                    
-                    rep_subfolder = os.path.join(figure_folder, valuedict_str)
-                    os.makedirs(rep_subfolder, exist_ok=True)
-                    for episode in range(args.episodes):
-                         last_episode = run_test(valuedict_str + '_ep' + str(episode), report_dir=rep_subfolder)
+            if safety_filter_comparison:
+                episode_dict = {}
+                agent_index = 0
+
+                customconfig = envconfig.copy()
+                env, active_env = create_test_env(envconfig=customconfig, video_name_prefix=args.env)
+                valuedict_str = "test"
+
+                
+                rep_subfolder = os.path.join(figure_folder, valuedict_str)
+                os.makedirs(rep_subfolder, exist_ok=True)
+                idx = 0
+                for episode in range(args.episodes):
+                    if episode % 2 == 0:
+                        colorval = "blue"
+                        envconfig['safety_filter'] = True
+                        agent = model.load(agent_path + agents[idx])
+                        print("agent, ", agents[idx])
+                        idx += 1
+                    else:
+                        envconfig['safety_filter'] = False
+                        colorval = "orange"
+
+
+                    last_episode = run_test(valuedict_str + '_ep' + str(episode), report_dir=rep_subfolder, max_t_steps=10000)
                     episode_dict['Agent ' + str(agent_index)] = [last_episode, colorval]
                     agent_index += 1
-                
-                gym_auv.reporting.plot_trajectory(figure_folder, env, fig_dir=figure_folder, fig_prefix=(args.env + '_all_agents'), episode_dict=episode_dict)
+
+                env.last_episode = last_episode
+
+
+                #find failed indices
+                failed_idx = []
+                for failed_test in failed_tests:
+                    failed_idx.append(int(failed_test[-1]))
+                #print('failed_idx', failed_idx)
+
+                          
+                gym_auv.reporting.plot_many_trajectories(figure_folder, env, fig_dir=figure_folder, fig_prefix=(args.env + '_all_agents'), episode_dict=episode_dict, failed_idx=failed_idx)
             else:
                 env, active_env = create_test_env(video_name_prefix=args.env)
                 for episode in range(args.episodes):

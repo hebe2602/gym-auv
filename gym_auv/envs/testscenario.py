@@ -62,6 +62,11 @@ class TestScenario1(BaseEnvironment):
         init_state = self.path(0)
         init_angle = self.path.get_direction(0)
 
+        #Random State
+        init_state[0] += 50*(self.rng.rand()-0.5)
+        init_state[1] += 50*(self.rng.rand()-0.5)
+        init_angle = geom.princip(init_angle + 2*np.pi*(self.rng.rand()-0.5))
+
         safety_filter_rank = -1
         if hasattr(self.vessel, 'safety_filter_rank'):
             safety_filter_rank = self.vessel.safety_filter_rank
@@ -354,7 +359,7 @@ class RandomScenario0(BaseEnvironment):
         #Random path
         self.obstacles = []
         path_length = 1000 #400
-        self.n_static_obst = 20 #6
+        self.n_static_obst = 8 #6
         n_waypoints = 2 #int(np.floor(2*self.rng.rand() + 1))#2
         self.path = RandomCurveThroughOrigin(self.rng, n_waypoints, length=path_length)
         init_state = self.path(0)
@@ -392,4 +397,51 @@ class RandomScenario0(BaseEnvironment):
             self.vessel.activate_safety_filter(self, safety_filter_rank)
         
         self._rewarder_class = SafetyColavRewarder
+
+
+
+
+
+class SafetyTestScenario(BaseEnvironment):
+    def _generate(self):
+        #Random path
+        self.obstacles = []
+        path_length = 500 #400
+        self.n_static_obst = 8 #6
+        waypoints = np.vstack([[25, 10],[-100,250], [-300, 500]]).T
+        self.path = Path(waypoints)
+        init_state = self.path(0)
+        init_angle = self.path.get_direction(0)
+
+        #Random state
+        # init_state[0] += 50*(self.rng.rand()-0.5)
+        # init_state[1] += 50*(self.rng.rand()-0.5)
+        # init_angle = geom.princip(init_angle + 2*np.pi*(self.rng.rand()-0.5))
+
+        safety_filter_rank = -1
+        if hasattr(self.vessel, 'safety_filter_rank'):
+            safety_filter_rank = self.vessel.safety_filter_rank
+
+        self.vessel = Vessel(self.config, np.hstack([init_state, init_angle]), width=self.config["vessel_width"])
+        prog = self.path.get_closest_arclength(self.vessel.position)
+        self.path_prog_hist = np.array([prog])
+        self.max_path_prog = prog
+        
+        obst_radiuses = [15, 25, 35, 12, 22, 28, 18, 24, 33]
+        obst_arclengths = [60, 110, 170, 210, 270, 320, 370, 420, 470]
+        displacements = [150, -60, -30, 40, -30, 120, -20, 10, 40]
+        for o in range(self.n_static_obst):
+
+            obst_position = self.path(obst_arclengths[o]) + np.array([displacements[o], displacements[o+1]])
+
+            obstacle = CircularObstacle(obst_position, obst_radiuses[o])
+
+            self.obstacles.append(obstacle)
+
+        if safety_filter_rank != -1:
+            del self.vessel.safety_filter
+            self.vessel.activate_safety_filter(self, safety_filter_rank)
+        
+        self._rewarder_class = SafetyColavRewarder
+        
         

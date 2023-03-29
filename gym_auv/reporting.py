@@ -23,6 +23,7 @@ from matplotlib import cm
 from matplotlib.collections import LineCollection
 from matplotlib import animation
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
+import matplotlib.lines as mlines
 
 import gym_auv
 import pandas as pd
@@ -1020,3 +1021,440 @@ def test_report(fig_dir):
 
     report(env, fig_dir)
     plot_trajectory(env, fig_dir)
+
+
+
+def plot_many_trajectories(report_dir, env, fig_dir, local=False, size=100, fig_prefix='', episode_dict=None, failed_idx=None):
+    """
+    Plots the result of a path following episode.
+
+    Parameters
+    ----------
+    fig_dir : str
+        Absolute path to a directory to store the plotted
+        figure in.
+    """
+
+    #print('Plotting with local = ' + str(local))
+    #_, trajectories = read_hdf5_report(report_dir)
+    trajectories = env.last_episode
+
+    path =  trajectories['path']
+    path_taken = trajectories['path_taken']
+    obstacles = trajectories['obstacles']
+
+    #np.savetxt(os.path.join(fig_dir, 'path_taken.txt'), path_taken) 
+
+    if (fig_prefix != '' and not fig_prefix[0] == '_'):
+        fig_prefix = '_' + fig_prefix
+
+    plt.style.use('ggplot')
+    plt.rc('font', family='serif')
+    plt.rc('xtick', labelsize=12)
+    plt.rc('ytick', labelsize=12)
+    plt.rc('axes', labelsize=12)
+    plt.axis('scaled')
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    ax.set_aspect(1.0)
+
+    if local:
+        axis_min_x = env.vessel.position[0] - size
+        axis_max_x = env.vessel.position[0] + size
+        axis_min_y = env.vessel.position[1] - size
+        axis_max_y = env.vessel.position[1] + size 
+
+    else:
+        axis_min_x = path[0, :].min() - 200
+        axis_max_x = path[0, :].max() + 200
+        axis_min_y = path[1, :].min() - 200
+        axis_max_y = path[1, :].max() + 200
+        daxisx = axis_max_x - axis_min_x
+        daxisy = axis_max_y - axis_min_y
+        if daxisx > daxisy:
+            d = daxisx - daxisy
+            axis_min_y -= d/2
+            axis_max_y += d/2
+        if daxisx < daxisy:
+            d = daxisy - daxisx
+            axis_min_x -= d/2
+            axis_max_x += d/2
+        axis_max = max(axis_max_x, axis_max_y)
+        axis_min = min(axis_min_x, axis_min_y)
+
+    for obst in obstacles:
+        if isinstance(obst, CircularObstacle):
+            obst_object = plt.Circle(
+                obst.position,
+                obst.radius,
+                facecolor='tab:red',
+                edgecolor='black',
+                linewidth=0.5,
+                zorder=10
+            )
+            obst_object.set_hatch('////')
+            obst = ax.add_patch(obst_object)
+        elif isinstance(obst, PolygonObstacle):
+            obst_object = plt.Polygon(
+                np.array(obst.points), True,
+                facecolor='#C0C0C0',
+                edgecolor='black',
+                linewidth=0.5,
+                zorder=10
+            )
+            obst = ax.add_patch(obst_object)
+
+    for obst in obstacles:
+        if not obst.static:
+            # if isinstance(obst, VesselObstacle):
+            #     x_arr = [elm[0] for elm in obst.path_taken[len(obst.path_taken) - min(len(obst.path_taken), 100):]]
+            #     y_arr = [elm[1] for elm in obst.path_taken[len(obst.path_taken) - min(len(obst.path_taken), 100):]]
+
+            #     points = np.array([x_arr, y_arr]).T.reshape(-1, 1, 2)
+            #     segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            #     colors = []
+            #     for i in range(len(x_arr)-1):
+            #         di = len(x_arr)-1 - i
+            #         if di > PLOT_COLOR_TRESHOLD:
+            #             c = (1.0, 0.0, 0.0)
+            #         else:
+            #             c = (min(1.0, di*0.01), max(0.0, 1.0-di*0.01), 0.0)
+            #         colors.append(c)
+            #     lc = LineCollection(segments, color=colors, linewidth=1.0, linestyle='--')
+            #     ax.add_collection(lc)
+
+            #     #ax.plot(x_arr, y_arr, dashes=[6, 2], color='red', linewidth=0.5, alpha=0.3)
+
+            if (not local) and isinstance(obst, VesselObstacle):
+                x_arr = [elm[1][0] for elm in obst.trajectory]
+                y_arr = [elm[1][1] for elm in obst.trajectory]
+                ax.plot(x_arr, y_arr, dashes=[6, 2], color='red', linewidth=0.5, alpha=0.3)
+
+            if not local:
+                plt.arrow(
+                    obst.init_boundary.centroid.coords[0][0],
+                    obst.init_boundary.centroid.coords[0][1],
+                    120*obst.dx,
+                    120*obst.dy,
+                    head_width=3 if local else 8,
+                    color='black',
+                    zorder=9
+                )
+
+    for obst in obstacles:
+        if isinstance(obst, VesselObstacle):
+            if local and (abs(obst.position[0] - env.vessel.position[0]) > size or abs(obst.position[1] - env.vessel.position[1]) > size):
+                continue
+            if local:
+                vessel_obst = VesselObstacle(
+                    width=obst.width, 
+                    trajectory=[],  
+                    init_position=obst.position,
+                    init_heading=obst.heading, 
+                    init_update=False
+                )
+                vessel_obst_object = plt.Polygon(
+                    np.array(list(vessel_obst.boundary.exterior.coords)), True,
+                    facecolor='#C0C0C0',
+                    edgecolor='red',
+                    linewidth=0.5,
+                    zorder=10
+                )
+            else:
+                vessel_obst = VesselObstacle(
+                    width=obst.width, 
+                    trajectory=[],  
+                    init_position=obst.init_position,
+                    init_heading=obst.heading, 
+                    init_update=False
+                )
+                vessel_obst_object = plt.Polygon(
+                    np.array(list(vessel_obst.init_boundary.exterior.coords)), True,
+                    facecolor='#C0C0C0',
+                    edgecolor='red',
+                    linewidth=0.5,
+                    zorder=10
+                )
+            ax.add_patch(vessel_obst_object)
+            if local and len(obst.heading_taken) >= SHADOW_LENGTH:
+                position = obst.path_taken[-SHADOW_LENGTH]
+                heading = obst.heading_taken[-SHADOW_LENGTH]
+
+                vessel_obst = VesselObstacle(
+                    width=obst.width, 
+                    trajectory=[],  
+                    init_position=position,
+                    init_heading=heading, 
+                    init_update=False
+                )
+                vessel_obst_object = plt.Polygon(
+                    np.array(list(vessel_obst.boundary.exterior.coords)), True,
+                    facecolor='none',
+                    edgecolor='red',
+                    linewidth=0.5,
+                    linestyle='--',
+                    zorder=10
+                )
+                ax.add_patch(vessel_obst_object)
+
+                # x_arr = [elm[0] for elm in obst.path_taken[len(obst.path_taken) - min(len(obst.path_taken), SHADOW_LENGTH):]]
+                # y_arr = [elm[1] for elm in obst.path_taken[len(obst.path_taken) - min(len(obst.path_taken), SHADOW_LENGTH):]]
+                # points = np.array([x_arr, y_arr]).T.reshape(-1, 1, 2)
+                # segments = np.concatenate([points[:-1], points[1:]], axis=1)
+                # colors = []
+                # for i in range(len(x_arr)-1):
+                #     di = len(x_arr)-1 - i
+                #     if di > PLOT_COLOR_TRESHOLD:
+                #         c = (1.0, 0.0, 0.0)
+                #     else:
+                #         c = (max(0.0, 1-di*0.01), 0.0, 0.0)
+                #     colors.append(c)
+                # lc = LineCollection(segments, color=colors, linewidth=0.5, linestyle='--', zorder=9)
+                # ax.add_collection(lc)
+
+    if local:
+        vessel_obst = VesselObstacle(
+            width=env.vessel.width, 
+            trajectory=[],  
+            init_position=env.vessel.position,
+            init_heading=env.vessel.heading, 
+            init_update=False
+        )
+        vessel_obst_object = plt.Polygon(
+            np.array(list(vessel_obst.boundary.exterior.coords)), True,
+            facecolor='#C0C0C0',
+            edgecolor='red',
+            linewidth=0.5,
+            zorder=10
+        )
+        ax.add_patch(vessel_obst_object)
+
+        if len(env.vessel.heading_taken) >= SHADOW_LENGTH:
+            position = env.vessel.path_taken[-SHADOW_LENGTH]
+            heading = env.vessel.heading_taken[-SHADOW_LENGTH]
+
+            vessel_obst = VesselObstacle(
+                width=env.vessel.width, 
+                trajectory=[],  
+                init_position=position,
+                init_heading=heading, 
+                init_update=False
+            )
+            vessel_obst_object = plt.Polygon(
+                np.array(list(vessel_obst.boundary.exterior.coords)), True,
+                facecolor='none',
+                edgecolor='red',
+                linewidth=0.5,
+                linestyle='--',
+                zorder=10
+            )
+            ax.add_patch(vessel_obst_object)
+
+    if local and size <= 50:
+        ax.set_ylabel(r"North (m)")
+        ax.set_xlabel(r"East (m)")
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda y, _: '{:.0f}'.format(y*10)))
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: '{:.0f}'.format(y*10)))
+    else:
+        ax.set_ylabel(r"North (km)")
+        ax.set_xlabel(r"East (km)")
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda y, _: '{:.1f}'.format(y/100)))
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: '{:.1f}'.format(y/100)))
+    ax.set_xlim(axis_min_x, axis_max_x)
+    ax.set_ylim(axis_min_y, axis_max_y)
+    #ax.legend()
+
+    dashmultiplier = 3 if local == False else size/100
+    linemultiplier = 1 if local == False else size/300
+    ax.plot(path[0, :], path[1, :], dashes=[3*dashmultiplier, 1*dashmultiplier], color='black', linewidth=1.0*linemultiplier, label=r'Path', zorder=8)
+
+    if episode_dict is None or local:
+        pathcolor = 'red'
+        L = len(env.vessel.heading_taken)
+        if L + 5 >= SHADOW_LENGTH:
+            ax.plot(path_taken[:L-SHADOW_LENGTH-7, 0], path_taken[:L-SHADOW_LENGTH-7, 1], dashes=[1*dashmultiplier, 2*dashmultiplier], color=pathcolor, linewidth=1.0*linemultiplier, label=r'Path taken')
+            ax.plot(path_taken[L-SHADOW_LENGTH+7+int(env.vessel.width):, 0], path_taken[L-SHADOW_LENGTH+7+int(env.vessel.width):, 1],  dashes=[1*dashmultiplier, 2*dashmultiplier], color=pathcolor, linewidth=1.0*linemultiplier, label=r'Path taken')
+        
+        else:
+            ax.plot(path_taken[:, 0], path_taken[:, 1], dashes=[1*dashmultiplier, 2*dashmultiplier], color=pathcolor, linewidth=1.0*linemultiplier, label=r'Path taken')
+
+        # x_arr = path_taken[:, 0]
+        # y_arr = path_taken[:, 1]
+        # points = np.array([x_arr, y_arr]).T.reshape(-1, 1, 2)
+        # segments = np.concatenate([points[:-1], points[1:]], axis=1)
+        # colors = []
+        # for i in range(len(x_arr)-1):
+        #     di = len(x_arr)-1 - i
+        #     if di > PLOT_COLOR_TRESHOLD:
+        #         c = (1.0, 0.0, 0.0, 0.3)
+        #     else:
+        #         c = (max(0.0, 1-di/PLOT_COLOR_TRESHOLD), 0.0, 0.0, min(1.0, 0.3+di*0.7/PLOT_COLOR_TRESHOLD))
+        #     colors.append(c)
+        # lc = LineCollection(segments, color=colors, linewidth=1.0, linestyle='--', zorder=9)
+        # ax.add_collection(lc)
+        
+    else:
+        episode_dict_colors = [episode_dict[value_key][1] for value_key in episode_dict]
+        #normalize = mcolors.Normalize(vmin=min(episode_dict_colors), vmax=max(episode_dict_colors))
+        #colormap = cm.coolwarm
+        episode = 0
+        offset = 10
+        for value_key in episode_dict:
+            
+            value_path_taken = episode_dict[value_key][0]['path_taken']
+            if int(value_key[-1]) % 2 == 1:
+                value_path_taken[:, 1] += offset
+            ax.plot(value_path_taken[:, 0], value_path_taken[:, 1], color=episode_dict[value_key][1], alpha=1)
+            if episode in failed_idx:
+                #plot a greeen X on the final position 
+                ax.plot(value_path_taken[-1, 0], value_path_taken[-1, 1], 'x', color='green', markersize=15, zorder=10)
+
+
+            episode += 1
+
+
+        # Create proxy artists for the custom legends
+        blue_line = mlines.Line2D([], [], color='blue', label='Safety Filter')
+        orange_line = mlines.Line2D([], [], color='orange', label='No Safety Filter')
+        green_cross = mlines.Line2D([], [], color='green', marker='x', linestyle='None', label='Collision')
+
+        # Add the custom legends to the plot
+        ax.legend(handles=[blue_line, orange_line, green_cross], loc='best')
+
+    if isinstance(env, RealWorldEnv) and not local:
+        for x, y in zip(*env.path.init_waypoints):
+            waypoint_marker = plt.Circle(
+                (x, y),
+                (axis_max - axis_min)/150,
+                facecolor='red',
+                linewidth=0.5,
+                zorder=11
+            )
+            ax.add_patch(waypoint_marker)
+
+    if not local:
+        ax.annotate("Goal", 
+            xy=(path[0, -1], path[1, -1] + (axis_max - axis_min)/25),   
+            fontsize=11, ha="center", zorder=20, color='white', family='sans-serif',
+            bbox=dict(facecolor='tab:red', edgecolor='black', alpha=0.75, boxstyle='round')
+        )
+        ax.annotate("Start", 
+            xy=(path[0, 0], path[1, 0] - (axis_max - axis_min)/20),
+            fontsize=11, ha="center", zorder=20, color='white', family='sans-serif',
+            bbox=dict(facecolor='tab:red', edgecolor='black', alpha=0.75, boxstyle='round')
+        )
+
+    fig.savefig(os.path.join(fig_dir, '{}path.pdf'.format(fig_prefix)), format='pdf', bbox_inches='tight')
+    plt.close(fig)
+
+def plot_scenario(env, fig_dir, fig_postfix='', show=True):
+    path = env.path(np.linspace(0, env.path.length, 1000))
+
+    plt.style.use('ggplot')
+    plt.rc('font', family='serif')
+    plt.rc('xtick', labelsize=12)
+    plt.rc('ytick', labelsize=12)
+    plt.rc('axes', labelsize=12)
+    plt.axis('scaled')
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    ax.set_aspect(1.0)
+
+    axis_min_x = path[0, :].min() - 200
+    axis_max_x = path[0, :].max() + 200
+    axis_min_y = path[1, :].min() - 200
+    axis_max_y = path[1, :].max() + 200
+    daxisx = axis_max_x - axis_min_x
+    daxisy = axis_max_y - axis_min_y
+    if daxisx > daxisy:
+        d = daxisx - daxisy
+        axis_min_y -= d/2
+        axis_max_y += d/2
+    if daxisx < daxisy:
+        d = daxisy - daxisx
+        axis_min_x -= d/2
+        axis_max_x += d/2
+    axis_max = max(axis_max_x, axis_max_y)
+    axis_min = min(axis_min_x, axis_min_y)
+
+    for obst in env.obstacles:
+        #if isinstance(obst, CircularObstacle):
+        if not obst.static:
+            
+            if isinstance(obst, VesselObstacle):
+                x_arr = [elm[1][0] for elm in obst.trajectory]
+                y_arr = [elm[1][1] for elm in obst.trajectory]
+                ax.plot(x_arr, y_arr, dashes=[6, 2], color='red', linewidth=0.5, alpha=0.3)
+
+            plt.arrow(
+                obst.boundary.centroid.coords[0][0],
+                obst.boundary.centroid.coords[0][1],
+                120*obst.dx,
+                120*obst.dy,
+                head_width=8,
+                color='black',
+                zorder=11
+            )
+
+    for obst in env.obstacles:
+        if isinstance(obst, CircularObstacle):
+            obst_object = plt.Circle(
+                obst.position,
+                obst.radius,
+                facecolor='tab:red',
+                edgecolor='black',
+                linewidth=0.5,
+                zorder=10
+            )
+            obst_object.set_hatch('////')
+        elif isinstance(obst, PolygonObstacle):
+            obst_object = plt.Polygon(
+                np.array(obst.points), True,
+                facecolor='#C0C0C0',
+                edgecolor='black',
+                linewidth=0.5,
+            )
+        elif isinstance(obst, VesselObstacle):
+            obst_object = plt.Polygon(
+                np.array(list(obst.boundary.exterior.coords)), True,
+                facecolor='#C0C0C0',
+                edgecolor='red',
+                linewidth=0.5,
+            )
+        obst = ax.add_patch(obst_object)
+
+    
+    ax.set_ylabel(r"North (km)")
+    ax.set_xlabel(r"East (km)")
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda y, _: '{:.1f}'.format(y/100)))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: '{:.1f}'.format(y/100)))
+    ax.set_xlim(axis_min_x, axis_max_x)
+    ax.set_ylim(axis_min_y, axis_max_y)
+    #ax.legend()
+
+    ax.plot(path[0, :], path[1, :], dashes=[6, 2], color='black', linewidth=1.5)
+    # if isinstance(env, RealWorldEnv):
+    #     for x, y in zip(*env.path.init_waypoints):
+    #         waypoint_marker = plt.Circle(
+    #             (x, y),
+    #             (axis_max - axis_min)/150,
+    #             facecolor='red',
+    #             linewidth=0.5,
+    #             zorder=11,
+    #         )
+    #         ax.add_patch(waypoint_marker)
+    ax.annotate("Goal", 
+        xy=(path[0, -1], path[1, -1] + (axis_max - axis_min)/25),
+        fontsize=11, ha="center", zorder=20, color='white', family='sans-serif',
+        bbox=dict(facecolor='tab:red', edgecolor='black', alpha=0.75, boxstyle='round')
+    )
+    ax.annotate("Start", 
+        xy=(path[0, 0], path[1, 0] - (axis_max - axis_min)/20),
+        fontsize=11, ha="center", zorder=20, color='white', family='sans-serif',
+        bbox=dict(facecolor='tab:red', edgecolor='black', alpha=0.75, boxstyle='round')
+    )
+
+    fig.savefig(os.path.join(fig_dir, 'Scenario_{}.pdf'.format(fig_postfix)), format='pdf', bbox_inches='tight')
+    if show:
+        plt.show()
+    plt.close(fig)
