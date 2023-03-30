@@ -52,7 +52,7 @@ save_fig_path = os.path.join('/home/sveinjhu/Documents/Masteroppgave/logs/figure
 #dir_list=['terminal_set', 'SF_good','realistic_model']
 dir_list=['PSF', 'Lidar_detetction']
 dir_list = ['SF_test', 'No_SF']
-dir_list = ['SF_3', 'No_SF_3']
+dir_list = ['SF_1', 'No_SF_1']
 
 
 label_list = ['PPO with PSF', 'PPO']
@@ -63,7 +63,7 @@ for var_index in range(6):
    for i in range(len(dir_list)):
       path = os.path.join('/home/sveinjhu/Documents/Masteroppgave/logs/figures/RandomScenario0-v0', dir_list[i])
       df = pd.read_csv(os.path.join(path, 'stats.csv'))
-      plot_stats(df, label = label_list[i], var = var_list[var_index], xaxis='timesteps', window_size=window_size)
+      plot_stats(df, label = label_list[i], var = var_list[var_index], xaxis='timesteps', window_size=window_size) #xaxis='episodes'
 
    #plt.show()
    plt.savefig(os.path.join(save_fig_path, var_list[var_index]+'.png'))

@@ -315,7 +315,7 @@ class Vessel():
         #Check if safety filter is activated
 
         if self._use_safety_filter:
-            if self.safety_filter.infeasible_solution:
+            if self.safety_filter.infeasible_solution and self._step_counter > 10:
                 print('creating new safety filter')
                 self.safety_filter = SafetyFilter(self.safety_filter.env, self.safety_filter.rank, self.config['model_type'])
             if self.config["lidar_obstacle_detection"]:

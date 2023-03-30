@@ -169,6 +169,10 @@ SCENARIOS = {
         'entry_point': 'gym_auv.envs:RandomScenario1',
         'config': MOVING_CONFIG
     },
+    'SafetyTestScenario-v0': {
+        'entry_point': 'gym_auv.envs:SafetyTestScenario',
+        'config': MOVING_CONFIG
+    },
 }
 
 
