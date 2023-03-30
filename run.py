@@ -24,6 +24,7 @@ from shapely import speedups
 from stable_baselines3.common.callbacks import EveryNTimesteps, EventCallback, BaseCallback, EvalCallback
 import queue
 from collections import deque
+import matplotlib.pyplot as plt
 
 
 ### HANNAH
@@ -949,7 +950,7 @@ def main(args):
 
         else:
             safety_filter_comparison = True
-            agents = ['10000.pkl', '100000.pkl', '500000.pkl']
+            agents = ['10000.pkl', '50000.pkl', '100000.pkl', '500000.pkl']
             agent_path = args.agent[:-9]
 
             if safety_filter_comparison:
@@ -964,16 +965,21 @@ def main(args):
                 rep_subfolder = os.path.join(figure_folder, valuedict_str)
                 os.makedirs(rep_subfolder, exist_ok=True)
                 idx = 0
+
+
+                colors = ['b', 'r', 'orange','purple']
                 for episode in range(args.episodes):
-                    if episode % 2 == 0:
-                        colorval = "blue"
-                        envconfig['safety_filter'] = True
-                        agent = model.load(agent_path + agents[idx])
-                        print("agent, ", agents[idx])
-                        idx += 1
-                    else:
-                        envconfig['safety_filter'] = False
-                        colorval = "orange"
+                    #if episode % 2 == 0:
+                    
+                    envconfig['safety_filter'] = True
+                    agent = model.load(agent_path + agents[idx])
+                    colorval = colors[idx]
+                    
+                    idx += 1
+
+                    # else:
+                    #     envconfig['safety_filter'] = False
+                    #     colorval = "orangered"
 
 
                     last_episode = run_test(valuedict_str + '_ep' + str(episode), report_dir=rep_subfolder, max_t_steps=10000)

@@ -1299,27 +1299,35 @@ def plot_many_trajectories(report_dir, env, fig_dir, local=False, size=100, fig_
         #colormap = cm.coolwarm
         episode = 0
         offset = 10
-        for value_key in episode_dict:
-            
+        dashmultiplier = 2
+        for value_key in episode_dict: 
             value_path_taken = episode_dict[value_key][0]['path_taken']
-            if int(value_key[-1]) % 2 == 1:
-                value_path_taken[:, 1] += offset
-            ax.plot(value_path_taken[:, 0], value_path_taken[:, 1], color=episode_dict[value_key][1], alpha=1)
+            # if int(value_key[-1]) % 2 == 1:
+            #     value_path_taken[:, 1] += offset
+            ax.plot(value_path_taken[:, 0], value_path_taken[:, 1], markersize=10, color=episode_dict[value_key][1], linewidth=1.3, label=value_key)
+
             if episode in failed_idx:
                 #plot a greeen X on the final position 
-                ax.plot(value_path_taken[-1, 0], value_path_taken[-1, 1], 'x', color='green', markersize=15, zorder=10)
+                ax.plot(value_path_taken[-1, 0], value_path_taken[-1, 1], 'x', color='lime', markersize=5, zorder=10, markeredgewidth=2)
 
 
             episode += 1
+        
+        handles, labels = ax.get_legend_handles_labels()
+        green_cross = mlines.Line2D([], [], color='lime', marker='x', linestyle='None', label='Collision', markeredgewidth=2)
+        handles.append(green_cross)
+        labels.append(green_cross.get_label())
+        ax.legend(handles=handles, labels=labels, loc='best')
 
 
-        # Create proxy artists for the custom legends
-        blue_line = mlines.Line2D([], [], color='blue', label='Safety Filter')
-        orange_line = mlines.Line2D([], [], color='orange', label='No Safety Filter')
-        green_cross = mlines.Line2D([], [], color='green', marker='x', linestyle='None', label='Collision')
+        # # Create proxy artists for the custom legends
+        # black_line = mlines.Line2D([], [], dashes=[3*dashmultiplier, 1*dashmultiplier], color='black', label='Path')
+        # blue_line = mlines.Line2D([], [], color='b', label='Safety Filter')
+        # orange_line = mlines.Line2D([], [],color='orangered', label='No Safety Filter')
+        green_cross = mlines.Line2D([], [], color='lime', marker='x', linestyle='None', label='Collision', markeredgewidth=2)
 
-        # Add the custom legends to the plot
-        ax.legend(handles=[blue_line, orange_line, green_cross], loc='best')
+        # # Add the custom legends to the plot
+        # ax.legend(handles=[black_line, blue_line, orange_line, green_cross], loc='best')
 
     if isinstance(env, RealWorldEnv) and not local:
         for x, y in zip(*env.path.init_waypoints):

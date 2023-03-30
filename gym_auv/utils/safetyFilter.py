@@ -24,7 +24,7 @@ class SafetyFilter:
       """
       Saftey filter class - sets up a predictive safety filter using the acados solver.
       """
-      def __init__(self, env, rank, model_type, max_detected_rays = 40, PSF_max_detect_distance = 30):
+      def __init__(self, env, rank, model_type, max_detected_rays = 60, PSF_max_detect_distance = 30):
             """
             Initialize the filter with the ship dynamics model, constraints and solver options.
             """
@@ -338,7 +338,7 @@ class SafetyFilter:
                               #Update obstacle parameters for close obstacles
                               if j in close_obs_idxs:
                                     self.p[3*j:3*j+2] = pred_obst_pos[j]
-                                    self.p[3*j+2] = self.obstacles[j].width + 2.0
+                                    self.p[3*j+2] = self.obstacles[j].width + 8.0
 
                                     #Predict future position
                                     index = int(np.floor(self.obstacles[j].waypoint_counter))
