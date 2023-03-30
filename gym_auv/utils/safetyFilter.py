@@ -129,26 +129,6 @@ class SafetyFilter:
             ocp.constraints.lbu = np.array([0.0,-F_r_max])
             ocp.constraints.ubu = np.array([+F_u_max,+F_r_max])
             ocp.constraints.idxbu = np.array([0,1])
-            
-
-            #Safety zone for rendering
-            env.vessel.safety_zone = Polygon([(-1, -1), 
-                                                (-1, 1), 
-                                                (1, 1), 
-                                                (1, -1), 
-                                                (-1, -1), 
-                                                ])
-            
-            
-            #Terminal set for rendering 
-            # env.vessel.terminal_set = Polygon([ (-ocp.constraints.lbx_e[0], -ocp.constraints.lbx_e[1]), 
-            #                                     (-ocp.constraints.lbx_e[0], ocp.constraints.lbx_e[1]), 
-            #                                     (ocp.constraints.lbx_e[0], ocp.constraints.lbx_e[1]), 
-            #                                     (ocp.constraints.lbx_e[0], -ocp.constraints.lbx_e[1]), 
-            #                                     (-ocp.constraints.lbx_e[0], -ocp.constraints.lbx_e[1]), 
-            #                                     ])
-            env.vessel.terminal_set = env.vessel.safety_zone
-
 
             #Safe trajectory for rendering
             env.vessel.safe_trajectory = np.ndarray((self.N+1,nx))

@@ -90,3 +90,9 @@ for var_index in range(6):
 # plt.show()
 
 
+# vessel_speed_density = np.loadtxt('resources/speed_density.txt')[:50]
+# speed_sum = np.sum(vessel_speed_density)
+# normalized_speed_density = vessel_speed_density / speed_sum
+# np.set_printoptions(precision=20)
+# print(normalized_speed_density)
+
