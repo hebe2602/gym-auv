@@ -24,7 +24,7 @@ class SafetyFilter:
       """
       Saftey filter class - sets up a predictive safety filter using the acados solver.
       """
-      def __init__(self, env, rank, model_type, max_detected_rays = 40, PSF_max_detect_distance = 30):
+      def __init__(self, env, rank, model_type, max_detected_rays_per_sector = 5, PSF_max_detect_distance = 30):
             """
             Initialize the filter with the ship dynamics model, constraints and solver options.
             """
@@ -41,7 +41,10 @@ class SafetyFilter:
             if hasattr(env, 'n_moving_obst'):
                   self.n_moving_obst = env.n_moving_obst
             self.n_obst = self.n_static_obst + self.n_moving_obst
-            self.max_detected_rays = max_detected_rays
+            self.n_sectors = env.config["n_sectors"]
+            self.n_sensors_per_sector = env.config["n_sensors_per_sector"]
+            self.max_detected_rays_per_sector = max_detected_rays_per_sector
+            self.max_detected_rays = max_detected_rays_per_sector*self.n_sectors
             self.PSF_max_detect_distance = PSF_max_detect_distance
             self.detected_ray_point_avoidance_radius = 8.0
             self.lidar_detection = env.config["lidar_obstacle_detection"]
@@ -60,8 +63,8 @@ class SafetyFilter:
             ny = nu
             nb = 3
             if self.lidar_detection:
-                  nh = max_detected_rays
-                  nh_e = max_detected_rays + 1
+                  nh = self.max_detected_rays
+                  nh_e = self.max_detected_rays + 1
             else:
                   nh = self.n_obst
                   nh_e = self.n_obst + 1
@@ -69,7 +72,6 @@ class SafetyFilter:
 
             # set dimensions
             ocp.dims.N = self.N
-
             
 
             # set cost type
@@ -157,15 +159,15 @@ class SafetyFilter:
                   #obstacle constraint
                   # Initialize all obstacle values to 1. Initializing to 0 would result in numerical error in solver because
                   # derivative of sqrt(x) is undefined for x = 0
-                  p0 = 999*np.ones((3 + 3*max_detected_rays))
+                  p0 = 999*np.ones((3*self.max_detected_rays))
                   
                   #Set initial parameter values corresponding to obstacle radius to -1. Deactivates constraints
-                  p0[2*max_detected_rays:-3] = -50
+                  p0[-self.max_detected_rays:] = -50
                   
             else:
                   #obstacle constraints
                   self.obstacles = env.obstacles
-                  p0 = np.zeros((3 + 3*self.n_obst))
+                  p0 = np.zeros((3*self.n_obst))
 
                   #Moving obstacles
                   for i in range(self.n_moving_obst):
@@ -222,6 +224,7 @@ class SafetyFilter:
       def update_obstacles_from_lidar(self, ray_dists, ray_angles, state):
             """Return updated obstacle parameter vector based on most recent sensor measurements"""
             
+            
             obs_param_updated = 999*np.ones(3 * self.max_detected_rays)
             
             # Last "max_detected_rays" elements of obstacle vector correspond to radius, initialize to -1, same as deactivating constraints
@@ -232,35 +235,54 @@ class SafetyFilter:
 
             # If no ray detections within PSF_max_distance, return
             if len(detect_idxs[0]) == 0:
-                  self.p[:-3] = obs_param_updated
+                  self.p = obs_param_updated
                   return
 
-            # Filter out ray detections greater than PSF_max_distance
-            detected_ray_dists = ray_dists[detect_idxs]
-
             # Add state[2] (heading) to get NED angles of detected rays
-            angles_of_detected_rays = ray_angles[detect_idxs] + state[2]
+            ray_angles_NED = ray_angles + state[2]
+
+            # Create 2D array with ray distances, corresponding sensor angles and indices
+            detect_rays = np.row_stack([ray_dists[detect_idxs], ray_angles_NED[detect_idxs]])
             
-            # Sort detected ray distances, we only use the "max_detected_rays" number of closest detected rays 
-            sorted_idxs_detected_ray_dists = np.argsort(detected_ray_dists)
-            
+            # Sort detected rays on distance, we only use the "max_detected_rays_per_sector" number of closest detected rays per sector
+            closest_detected_rays = []
+
+            for i in range(self.n_sectors):
+                  start = i*self.n_sensors_per_sector
+                  end = start + self.n_sensors_per_sector
+                  
+                  # Get detected rays within sector
+                  sector_detect_rays = detect_rays[:, np.asarray((detect_idxs[0] >= start) & (detect_idxs[0] < end))]
+                  
+                  # If no detected rays within sector, continue to next iteration
+                  if len(sector_detect_rays) == 0:
+                        continue
+
+                  # Sort detected rays within sector based on distance
+                  sorted_sector_detect_rays = sector_detect_rays[:,np.argsort(sector_detect_rays[0])]
+
+                  # Add (max_detected_rays_per_sector) distances and angles tuple to list
+                  closest_detected_rays.extend(zip(sorted_sector_detect_rays[0,:self.max_detected_rays_per_sector], sorted_sector_detect_rays[1,:self.max_detected_rays_per_sector]))
+ 
             # index for assigning subsequent ray-detection obstacles to subsequent sets of parameter elements
             obs_param_idx = 0
 
-            for idx in sorted_idxs_detected_ray_dists[:self.max_detected_rays]:
-
+            for ray in closest_detected_rays:
+                  
+                  dist = ray[0]
+                  angle = ray[1]
                   # Set obstacle x-value
-                  obs_param_updated[obs_param_idx] = state[0] + detected_ray_dists[idx]*np.cos(angles_of_detected_rays[idx])
+                  obs_param_updated[obs_param_idx] = state[0] + dist*np.cos(angle)
 
                   # Set obstacle y-value
-                  obs_param_updated[obs_param_idx + self.max_detected_rays] = state[1] + detected_ray_dists[idx]*np.sin(angles_of_detected_rays[idx])
+                  obs_param_updated[obs_param_idx + self.max_detected_rays] = state[1] + dist*np.sin(angle)
 
                   # Set obstacle r-value
                   obs_param_updated[obs_param_idx + 2*self.max_detected_rays] = self.detected_ray_point_avoidance_radius
 
                   obs_param_idx += 1
                   
-            self.p[:-3] = obs_param_updated
+            self.p = obs_param_updated
             #print('Updated obstacle parameters: ', self.p[:-3])
 
 

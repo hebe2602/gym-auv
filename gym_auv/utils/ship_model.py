@@ -132,10 +132,6 @@ def export_ship_PSF_model(model_type = 'simplified', max_detected_rays = 10, n_o
             obs_list.append(SX.sym('r_obs_' + str(i)))
         state_obs = vertcat(*obs_list)
     
-    track_heading = SX.sym('track_heading')
-    ctp_x = SX.sym('ctp_x')
-    ctp_y = SX.sym('ctp_y')
-    
     #Dynamics
     # nu_expl = M_inv@(-C@nu - D@nu + B@F)
     def princip(angle):
@@ -219,7 +215,7 @@ def export_ship_PSF_model(model_type = 'simplified', max_detected_rays = 10, n_o
     model.x = state
     model.xdot = state_dot
     model.u = F
-    model.p = vertcat(state_obs,ctp_x,ctp_y,track_heading)
+    model.p = state_obs
     model.con_h_expr = con_h_expr
     model.con_h_expr_e = vertcat(con_h_expr_e, terminal_set_expr_nu)
     model.name = model_name
