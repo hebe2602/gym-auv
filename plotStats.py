@@ -39,31 +39,25 @@ def plot_stats(df, label = None, var = 'rewards', window_size = 100, n_timesteps
    # add grid to the plot
    ax.grid(True, linestyle='--', color='white', linewidth=0.5)
 
-   legend = plt.legend(loc='center right', fontsize=14)#, bbox_to_anchor=(1, 0.5))
+   legend = plt.legend(loc='best', fontsize=14)#, bbox_to_anchor=(1, 0.5))
    legend.get_frame().set_facecolor('lavender')
 
 
 
+save_fig_path = os.path.join('/home/sveinjhu/Documents/Masteroppgave/logs/figures/RandomScenario1-v0/Plots')
 
-save_fig_path = os.path.join('/home/sveinjhu/Documents/Masteroppgave/logs/figures/RandomScenario0-v0/Plots')
-
-#dir_list = ['gamma_1', 'gamma_5', 'gamma_10', 'gamma_20', 'gamma_50', 'No_SF']
-#dir_list = ['PSF', 'No_PSF']
-#dir_list=['terminal_set', 'SF_good','realistic_model']
-dir_list=['PSF', 'Lidar_detetction']
-dir_list = ['SF_test', 'No_SF']
-dir_list = ['SF_1', 'No_SF_1']
+dir_list = ['SF_3_lidar', 'SF_3_lidar_and_obst', 'SF_3_no_lidar']
 
 
-label_list = ['PPO with PSF', 'PPO']
-var_list = ['rewards', 'cross_track_errors', 'progresses', 'timesteps', 'durations','collisions']
+label_list = ['PSF with lidar', 'PSF with lidar and moving obstacles', 'PSF without lidar']
+var_list = ['rewards', 'cross_track_errors', 'progresses', 'timesteps', 'durations','collisions', ]
 var_index = 4
-window_size = 150
+window_size = 50
 for var_index in range(6):
    for i in range(len(dir_list)):
-      path = os.path.join('/home/sveinjhu/Documents/Masteroppgave/logs/figures/RandomScenario0-v0', dir_list[i])
+      path = os.path.join('/home/sveinjhu/Documents/Masteroppgave/logs/figures/RandomScenario1-v0', dir_list[i])
       df = pd.read_csv(os.path.join(path, 'stats.csv'))
-      plot_stats(df, label = label_list[i], var = var_list[var_index], xaxis='timesteps', window_size=window_size) #xaxis='episodes'
+      plot_stats(df, label = label_list[i], var = var_list[var_index], xaxis='episodes', window_size=window_size) #xaxis='episodes'
 
    #plt.show()
    plt.savefig(os.path.join(save_fig_path, var_list[var_index]+'.png'))

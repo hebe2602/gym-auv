@@ -315,11 +315,18 @@ class Vessel():
         #Check if safety filter is activated
 
         if self._use_safety_filter:
+            #Check if safety filter has crashed
             if self.safety_filter.infeasible_solution and self._step_counter > 10:
+                #Logging
+                self.safety_filter.env.history['infeasible_solution'] = np.array([1])
+                
                 print('creating new safety filter')
                 self.safety_filter = SafetyFilter(self.safety_filter.env, self.safety_filter.rank, self.config['model_type'])
-            if self.config["lidar_obstacle_detection"]:
+
+            #Update obstacles with lidar data
+            if self.config["lidar_obstacle_detection"] or self.config["lidar_and_moving_obstacles"]:
                 self.safety_filter.update_obstacles_from_lidar(self._last_sensor_dist_measurements, self._sensor_angles, self._state)
+
             self.safety_filter.update(self._state, self._last_navi_state_dict)
             self._input = self.safety_filter.filter(self._input, self._state)
 

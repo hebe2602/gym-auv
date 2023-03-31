@@ -141,7 +141,7 @@ def report(env, report_dir, lastn=100):
 
         #write stats to file
         data = {'rewards': rewards, 'progresses': progresses, 'cross_track_errors': cross_track_errors, 'timesteps': timesteps,
-         'durations': durations,'collisions':collisions,'goals_reached':progresses[progresses > 0.99].size}
+         'durations': durations,'collisions':collisions,'goals_reached':progresses[progresses > 0.99].size, 'infesible_solutions':infeasible_solution}
         df = pd.DataFrame(data)
         df.to_csv(os.path.join(report_dir, 'stats.csv'), index=False)
 
@@ -1353,116 +1353,4 @@ def plot_many_trajectories(report_dir, env, fig_dir, local=False, size=100, fig_
         )
 
     fig.savefig(os.path.join(fig_dir, '{}path.pdf'.format(fig_prefix)), format='pdf', bbox_inches='tight')
-    plt.close(fig)
-
-def plot_scenario(env, fig_dir, fig_postfix='', show=True):
-    path = env.path(np.linspace(0, env.path.length, 1000))
-
-    plt.style.use('ggplot')
-    plt.rc('font', family='serif')
-    plt.rc('xtick', labelsize=12)
-    plt.rc('ytick', labelsize=12)
-    plt.rc('axes', labelsize=12)
-    plt.axis('scaled')
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
-    ax.set_aspect(1.0)
-
-    axis_min_x = path[0, :].min() - 200
-    axis_max_x = path[0, :].max() + 200
-    axis_min_y = path[1, :].min() - 200
-    axis_max_y = path[1, :].max() + 200
-    daxisx = axis_max_x - axis_min_x
-    daxisy = axis_max_y - axis_min_y
-    if daxisx > daxisy:
-        d = daxisx - daxisy
-        axis_min_y -= d/2
-        axis_max_y += d/2
-    if daxisx < daxisy:
-        d = daxisy - daxisx
-        axis_min_x -= d/2
-        axis_max_x += d/2
-    axis_max = max(axis_max_x, axis_max_y)
-    axis_min = min(axis_min_x, axis_min_y)
-
-    for obst in env.obstacles:
-        #if isinstance(obst, CircularObstacle):
-        if not obst.static:
-            
-            if isinstance(obst, VesselObstacle):
-                x_arr = [elm[1][0] for elm in obst.trajectory]
-                y_arr = [elm[1][1] for elm in obst.trajectory]
-                ax.plot(x_arr, y_arr, dashes=[6, 2], color='red', linewidth=0.5, alpha=0.3)
-
-            plt.arrow(
-                obst.boundary.centroid.coords[0][0],
-                obst.boundary.centroid.coords[0][1],
-                120*obst.dx,
-                120*obst.dy,
-                head_width=8,
-                color='black',
-                zorder=11
-            )
-
-    for obst in env.obstacles:
-        if isinstance(obst, CircularObstacle):
-            obst_object = plt.Circle(
-                obst.position,
-                obst.radius,
-                facecolor='tab:red',
-                edgecolor='black',
-                linewidth=0.5,
-                zorder=10
-            )
-            obst_object.set_hatch('////')
-        elif isinstance(obst, PolygonObstacle):
-            obst_object = plt.Polygon(
-                np.array(obst.points), True,
-                facecolor='#C0C0C0',
-                edgecolor='black',
-                linewidth=0.5,
-            )
-        elif isinstance(obst, VesselObstacle):
-            obst_object = plt.Polygon(
-                np.array(list(obst.boundary.exterior.coords)), True,
-                facecolor='#C0C0C0',
-                edgecolor='red',
-                linewidth=0.5,
-            )
-        obst = ax.add_patch(obst_object)
-
-    
-    ax.set_ylabel(r"North (km)")
-    ax.set_xlabel(r"East (km)")
-    ax.xaxis.set_major_formatter(FuncFormatter(lambda y, _: '{:.1f}'.format(y/100)))
-    ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: '{:.1f}'.format(y/100)))
-    ax.set_xlim(axis_min_x, axis_max_x)
-    ax.set_ylim(axis_min_y, axis_max_y)
-    #ax.legend()
-
-    ax.plot(path[0, :], path[1, :], dashes=[6, 2], color='black', linewidth=1.5)
-    # if isinstance(env, RealWorldEnv):
-    #     for x, y in zip(*env.path.init_waypoints):
-    #         waypoint_marker = plt.Circle(
-    #             (x, y),
-    #             (axis_max - axis_min)/150,
-    #             facecolor='red',
-    #             linewidth=0.5,
-    #             zorder=11,
-    #         )
-    #         ax.add_patch(waypoint_marker)
-    ax.annotate("Goal", 
-        xy=(path[0, -1], path[1, -1] + (axis_max - axis_min)/25),
-        fontsize=11, ha="center", zorder=20, color='white', family='sans-serif',
-        bbox=dict(facecolor='tab:red', edgecolor='black', alpha=0.75, boxstyle='round')
-    )
-    ax.annotate("Start", 
-        xy=(path[0, 0], path[1, 0] - (axis_max - axis_min)/20),
-        fontsize=11, ha="center", zorder=20, color='white', family='sans-serif',
-        bbox=dict(facecolor='tab:red', edgecolor='black', alpha=0.75, boxstyle='round')
-    )
-
-    fig.savefig(os.path.join(fig_dir, 'Scenario_{}.pdf'.format(fig_postfix)), format='pdf', bbox_inches='tight')
-    if show:
-        plt.show()
     plt.close(fig)

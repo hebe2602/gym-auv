@@ -48,12 +48,14 @@ class SafetyFilter:
             self.PSF_max_detect_distance = PSF_max_detect_distance
             self.detected_ray_point_avoidance_radius = 8.0
             self.lidar_detection = env.config["lidar_obstacle_detection"]
+            self.lidar_and_moving_obstacles = env.config["lidar_and_moving_obstacles"]
             self.infeasible_solution = False
 
 
             # set model
             model = export_ship_PSF_model(model_type=model_type, max_detected_rays=self.max_detected_rays,
-                                           n_obstacles=self.n_obst, lidar_detection=self.lidar_detection)
+                                           n_obstacles=self.n_obst, n_moving_obstacles=self.n_moving_obst,lidar_detection=self.lidar_detection, 
+                                           lidar_and_moving_obstacles=self.lidar_and_moving_obstacles)
             ocp.model = model
 
             self.N = 50
@@ -62,7 +64,11 @@ class SafetyFilter:
             nu = model.u.size()[0]
             ny = nu
             nb = 3
-            if self.lidar_detection:
+
+            if self.lidar_and_moving_obstacles:
+                  nh = self.max_detected_rays + self.n_moving_obst
+                  nh_e = self.max_detected_rays + self.n_moving_obst + 1
+            elif self.lidar_detection:
                   nh = self.max_detected_rays
                   nh_e = self.max_detected_rays + 1
             else:
@@ -87,7 +93,6 @@ class SafetyFilter:
             F_r_max = 0.2
             
             # cost weights on inputs. Higher penalization on surge-thrust deviation to encourage movement
-
             gamma_F_u = 1.0
             gamma_F_r = 1.0e-2
 
@@ -133,28 +138,40 @@ class SafetyFilter:
             #Safe trajectory for rendering
             env.vessel.safe_trajectory = np.ndarray((self.N+1,nx))
 
+            #Use lidar detection and moving obstacles information, lidar detection only, or obstacle information only
+            if self.lidar_and_moving_obstacles:
+                  #obstacle constraints
+                  # Initialize all obstacle values to 999. Initializing to 0 would result in numerical error in solver because
+                  # derivative of sqrt(x) is undefined for x = 0
+                  p0 = 999*np.ones((3*self.max_detected_rays + 3*self.n_moving_obst))
+
+                  #moving obstacles
+                  self.obstacles = env.obstacles
+                  for i in range(self.n_moving_obst):
+                        p0[3*i:3*i+2] = self.obstacles[i].position
+                        p0[3*i+2] = self.obstacles[i].width
 
 
-            if self.lidar_detection:
+            elif self.lidar_detection:
                   #obstacle constraint
-                  # Initialize all obstacle values to 1. Initializing to 0 would result in numerical error in solver because
+                  # Initialize all obstacle values to 999. Initializing to 0 would result in numerical error in solver because
                   # derivative of sqrt(x) is undefined for x = 0
                   p0 = 999*np.ones((3*self.max_detected_rays))
                   
                   #Set initial parameter values corresponding to obstacle radius to -1. Deactivates constraints
                   p0[-self.max_detected_rays:] = -50
-                  
+
             else:
                   #obstacle constraints
                   self.obstacles = env.obstacles
                   p0 = np.zeros((3*self.n_obst))
 
-                  #Moving obstacles
+                  #moving obstacles
                   for i in range(self.n_moving_obst):
                         p0[3*i:3*i+2] = self.obstacles[i].position
-                        p0[3*i+2] = self.obstacles[i].width + 2.0
+                        p0[3*i+2] = self.obstacles[i].width
                   
-                  #Static obstacles
+                  #static obstacles
                   for i in range(self.n_moving_obst,self.n_obst):
                         p0[3*i:3*i+2] = self.obstacles[i].position
                         p0[3*i+2] = self.obstacles[i].radius
@@ -215,7 +232,7 @@ class SafetyFilter:
 
             # If no ray detections within PSF_max_distance, return
             if len(detect_idxs[0]) == 0:
-                  self.p = obs_param_updated
+                  self.p[:3*self.max_detected_rays] = obs_param_updated
                   return
 
             # Add state[2] (heading) to get NED angles of detected rays
@@ -262,10 +279,8 @@ class SafetyFilter:
 
                   obs_param_idx += 1
                   
-            self.p = obs_param_updated
+            self.p[:3*self.max_detected_rays] = obs_param_updated
             #print('Updated obstacle parameters: ', self.p[:-3])
-
-
 
 
       def filter(self, u, state):
@@ -291,14 +306,16 @@ class SafetyFilter:
                   # for i in range(self.N):
                   #      print(i, ': x: ', self.ocp_solver.get(i,'x'), ', u: ', self.ocp_solver.get(i,'u'))
                   #raise Exception(f'acados returned status {status}.')
+
                   # If acados returns error, return original input and disable safety filter
-                  self.env.history['infeasible_solution'] = np.array([1])
+                  
                   print('Infeasible solution, returning original input and disabling safety filter.')
+                  #self.env.history['infeasible_solution'] = np.array([1])
                   #self.env.vessel._use_safety_filter = False
-                  print('Current state: ', state)
-                  print('vessel_position', self.env.vessel.position)
-                  print('obstacles', [obs.position for obs in self.env.obstacles])
-                  print('path', self.env.path._points, self.env.path.length)
+                  #print('Current state: ', state)
+                  #print('vessel_position', self.env.vessel.position)
+                  #print('obstacles', [obs.position for obs in self.env.obstacles])
+                  #print('path', self.env.path._points, self.env.path.length)
                   self.infeasible_solution = True
                   self.diff_u = np.zeros(2)
                   return u
@@ -318,13 +335,14 @@ class SafetyFilter:
             self.ocp_solver.set(0, "ubx", state)
 
             #Terminal set parameters
-            ctp_heading = nav_state['look_ahead_heading_error']
-            ctp = nav_state['closest_point']
-            ctp_x = ctp[0]
-            ctp_y = ctp[1]
-            self.p[-3:] = np.array([ctp_x,ctp_y,ctp_heading])
+            # ctp_heading = nav_state['look_ahead_heading_error']
+            # ctp = nav_state['closest_point']
+            # ctp_x = ctp[0]
+            # ctp_y = ctp[1]
+            #self.p[-3:] = np.array([ctp_x,ctp_y,ctp_heading])
 
-            if self.lidar_detection:
+
+            if self.lidar_detection and not self.lidar_and_moving_obstacles:
                   for i in range(self.N + 1):
                         self.ocp_solver.set(i,'p',self.p)
 
@@ -336,11 +354,16 @@ class SafetyFilter:
                   pred_obst_pos = [self.obstacles[i].position for i in range(self.n_moving_obst)]
                   for i in range(self.N + 1):
                         for j in range(self.n_moving_obst):
-
+                              #Change index if lidar detection is used
+                              if self.lidar_and_moving_obstacles:
+                                    p_idx = j + self.max_detected_rays
+                              else:
+                                    p_idx = j
+                  
                               #Update obstacle parameters for close obstacles
                               if j in close_obs_idxs:
-                                    self.p[3*j:3*j+2] = pred_obst_pos[j]
-                                    self.p[3*j+2] = self.obstacles[j].width + 8.0
+                                    self.p[3*p_idx:3*p_idx+2] = pred_obst_pos[j]
+                                    self.p[3*p_idx+2] = self.obstacles[j].width + 12.0
 
                                     #Predict future position
                                     index = int(np.floor(self.obstacles[j].waypoint_counter))
@@ -349,9 +372,11 @@ class SafetyFilter:
 
                               #Make obstacles far away negligible
                               else:
-                                    self.p[3*j+2] = -5.0
-                  
+                                    self.p[3*p_idx:3*p_idx+2] = pred_obst_pos[j]
+                                    self.p[3*p_idx+2] = -10.0
+
                         self.ocp_solver.set(i,'p',self.p)
+
       def __del__(self):
             del self.ocp_solver
             
