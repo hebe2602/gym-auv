@@ -352,8 +352,12 @@ class Vessel():
         Initializes and activates a safety filter to be used in the vessel step function. 
         """
         self.safety_filter_rank = rank
-        self.safety_filter = SafetyFilter(env, rank, self.config['model_type'])
         self._use_safety_filter = True
+
+        if self.safety_filter is None:
+            self.safety_filter = SafetyFilter(env, rank, self.config['model_type'])
+        else:
+            self.safety_filter.reset(env)
 
 
     def perceive(self, obstacles:list):

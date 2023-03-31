@@ -61,6 +61,7 @@ class SafetyFilter:
             self.N = 50
             self.T_s = 0.5
             nx = model.x.size()[0]
+            self.nx = nx
             nu = model.u.size()[0]
             ny = nu
             nb = 3
@@ -376,6 +377,53 @@ class SafetyFilter:
                                     self.p[3*p_idx+2] = -10.0
 
                         self.ocp_solver.set(i,'p',self.p)
+
+
+      def reset(self, env):
+            self.ocp_solver.reset()
+
+
+            #Safe trajectory for rendering
+            self.env = env
+            self.env.vessel.safe_trajectory = np.ndarray((self.N+1,self.nx))
+            self.obsatcles = env.obstacles
+            
+            if self.lidar_and_moving_obstacles:
+                  #obstacle constraints
+                  # Initialize all obstacle values to 999. Initializing to 0 would result in numerical error in solver because
+                  # derivative of sqrt(x) is undefined for x = 0
+                  p0 = 999*np.ones((3*self.max_detected_rays + 3*self.n_moving_obst))
+
+                  #moving obstacles
+                  for i in range(self.n_moving_obst):
+                        p0[3*i:3*i+2] = self.obstacles[i].position
+                        p0[3*i+2] = self.obstacles[i].width
+
+
+            elif self.lidar_detection:
+                  #obstacle constraint
+                  # Initialize all obstacle values to 999. Initializing to 0 would result in numerical error in solver because
+                  # derivative of sqrt(x) is undefined for x = 0
+                  p0 = 999*np.ones((3*self.max_detected_rays))
+                  
+                  #Set initial parameter values corresponding to obstacle radius to -1. Deactivates constraints
+                  p0[-self.max_detected_rays:] = -50
+
+            else:
+                  #obstacle constraints
+
+                  p0 = np.zeros((3*self.n_obst))
+
+                  #moving obstacles
+                  for i in range(self.n_moving_obst):
+                        p0[3*i:3*i+2] = self.obstacles[i].position
+                        p0[3*i+2] = self.obstacles[i].width
+                  
+                  #static obstacles
+                  for i in range(self.n_moving_obst,self.n_obst):
+                        p0[3*i:3*i+2] = self.obstacles[i].position
+                        p0[3*i+2] = self.obstacles[i].radius
+
 
       def __del__(self):
             del self.ocp_solver

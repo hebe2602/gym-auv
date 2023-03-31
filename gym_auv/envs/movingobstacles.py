@@ -193,6 +193,7 @@ class RandomScenario1(MovingObstacles):
 
         safety_filter_rank = -1
         if hasattr(self.vessel, 'safety_filter_rank'):
+            safety_filter = self.vessel.safety_filter
             safety_filter_rank = self.vessel.safety_filter_rank
 
         # Initializing path
@@ -247,5 +248,7 @@ class RandomScenario1(MovingObstacles):
 
         #Activate safety filter
         if safety_filter_rank != -1:
+            self.vessel.safety_filter = safety_filter
             self.vessel.activate_safety_filter(self, safety_filter_rank)
+            
 
