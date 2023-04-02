@@ -82,8 +82,7 @@ def N(nu):
     return N
 
 
-def export_ship_PSF_model(model_type = 'simplified', max_detected_rays = 10, n_obstacles = 1, n_moving_obstacles = 0, 
-                        lidar_detection = False, lidar_and_moving_obstacles = False) -> AcadosModel:
+def export_ship_PSF_model(model_type = 'simplified', max_detected_rays = 10, n_obstacles = 1, n_moving_obstacles = 0, safety_filter_mode=None) -> AcadosModel:
     """Export AcadosModel for use in predictive safety filter"""
 
     model_name = 'ship_PSF'
@@ -119,7 +118,7 @@ def export_ship_PSF_model(model_type = 'simplified', max_detected_rays = 10, n_o
     F_u = SX.sym('F_u')
     F_r = SX.sym('F_r')
     F = vertcat(F_u,F_r)
-    if lidar_and_moving_obstacles:
+    if safety_filter_mode == "lidar_and_moving_obstacles":
         obs_x = SX.sym('obs_x',max_detected_rays)
         obs_y = SX.sym('obs_y',max_detected_rays)
         obs_r = SX.sym('obs_r',max_detected_rays)
@@ -132,7 +131,7 @@ def export_ship_PSF_model(model_type = 'simplified', max_detected_rays = 10, n_o
         
         state_obs = vertcat(obs_x,obs_y,obs_r,*obs_list)
 
-    elif lidar_detection:
+    elif safety_filter_mode == "lidar":
         obs_x = SX.sym('obs_x',max_detected_rays)
         obs_y = SX.sym('obs_y',max_detected_rays)
         obs_r = SX.sym('obs_r',max_detected_rays)
@@ -203,13 +202,13 @@ def export_ship_PSF_model(model_type = 'simplified', max_detected_rays = 10, n_o
     obstacle_constraint_list = []
 
 
-    if lidar_and_moving_obstacles:
+    if safety_filter_mode == "lidar_and_moving_obstacles":
         for i in range(max_detected_rays):
             obstacle_constraint_list.append(sqrt((x - obs_x[i])**2 + (y - obs_y[i])**2) - obs_r[i])
         for i in range(n_moving_obstacles):
             obstacle_constraint_list.append(sqrt((x - obs_list[3*i])**2 + (y - obs_list[3*i+1])**2) - obs_list[3*i+2] - 7.0)
 
-    elif lidar_detection:
+    elif safety_filter_mode == "lidar":
         for i in range(max_detected_rays):
             obstacle_constraint_list.append(sqrt((x - obs_x[i])**2 + (y - obs_y[i])**2) - obs_r[i])
 

@@ -47,15 +47,15 @@ class SafetyFilter:
             self.max_detected_rays = max_detected_rays_per_sector*self.n_sectors
             self.PSF_max_detect_distance = PSF_max_detect_distance
             self.detected_ray_point_avoidance_radius = 8.0
-            self.lidar_detection = env.config["lidar_obstacle_detection"]
-            self.lidar_and_moving_obstacles = env.config["lidar_and_moving_obstacles"]
+            #self.lidar_detection = env.config["lidar_obstacle_detection"]
+            #self.lidar_and_moving_obstacles = env.config["lidar_and_moving_obstacles"]
+            self.mode = env.config["safety_filter_mode"]
             self.infeasible_solution = False
 
 
             # set model
             model = export_ship_PSF_model(model_type=model_type, max_detected_rays=self.max_detected_rays,
-                                           n_obstacles=self.n_obst, n_moving_obstacles=self.n_moving_obst,lidar_detection=self.lidar_detection, 
-                                           lidar_and_moving_obstacles=self.lidar_and_moving_obstacles)
+                                           n_obstacles=self.n_obst, n_moving_obstacles=self.n_moving_obst,safety_filter_mode=self.mode)
             ocp.model = model
 
             self.N = 50
@@ -66,16 +66,22 @@ class SafetyFilter:
             ny = nu
             nb = 3
 
-            if self.lidar_and_moving_obstacles:
+            if self.mode == "lidar_and_moving_obstacles":
                   nh = self.max_detected_rays + self.n_moving_obst
                   nh_e = self.max_detected_rays + self.n_moving_obst + 1
-            elif self.lidar_detection:
+            elif self.mode == "lidar":
                   nh = self.max_detected_rays
                   nh_e = self.max_detected_rays + 1
-            else:
+            elif self.mode == "obstacles":
                   nh = self.n_obst
                   nh_e = self.n_obst + 1
+            else:
+                  raise ValueError("Invalid mode. Valid modes are 'lidar_and_moving_obstacles', 'lidar', and 'obstacles'")
+
+                  
             T_f = self.N*self.T_s
+
+           
 
             # set dimensions
             ocp.dims.N = self.N
@@ -140,7 +146,7 @@ class SafetyFilter:
             env.vessel.safe_trajectory = np.ndarray((self.N+1,nx))
 
             #Use lidar detection and moving obstacles information, lidar detection only, or obstacle information only
-            if self.lidar_and_moving_obstacles:
+            if self.mode == "lidar_and_moving_obstacles":
                   #obstacle constraints
                   # Initialize all obstacle values to 999. Initializing to 0 would result in numerical error in solver because
                   # derivative of sqrt(x) is undefined for x = 0
@@ -153,7 +159,7 @@ class SafetyFilter:
                         p0[3*i+2] = self.obstacles[i].width
 
 
-            elif self.lidar_detection:
+            elif self.mode == "lidar":
                   #obstacle constraint
                   # Initialize all obstacle values to 999. Initializing to 0 would result in numerical error in solver because
                   # derivative of sqrt(x) is undefined for x = 0
@@ -162,7 +168,7 @@ class SafetyFilter:
                   #Set initial parameter values corresponding to obstacle radius to -1. Deactivates constraints
                   p0[-self.max_detected_rays:] = -50
 
-            else:
+            elif self.mode == "obstacles":
                   #obstacle constraints
                   self.obstacles = env.obstacles
                   p0 = np.zeros((3*self.n_obst))
@@ -343,7 +349,7 @@ class SafetyFilter:
             #self.p[-3:] = np.array([ctp_x,ctp_y,ctp_heading])
 
 
-            if self.lidar_detection and not self.lidar_and_moving_obstacles:
+            if self.mode == "lidar":
                   for i in range(self.N + 1):
                         self.ocp_solver.set(i,'p',self.p)
 
@@ -356,7 +362,7 @@ class SafetyFilter:
                   for i in range(self.N + 1):
                         for j in range(self.n_moving_obst):
                               #Change index if lidar detection is used
-                              if self.lidar_and_moving_obstacles:
+                              if self.mode == "lidar_and_moving_obstacles":
                                     p_idx = j + self.max_detected_rays
                               else:
                                     p_idx = j
@@ -381,14 +387,15 @@ class SafetyFilter:
 
       def reset(self, env):
             self.ocp_solver.reset()
+            
 
 
             #Safe trajectory for rendering
             self.env = env
             self.env.vessel.safe_trajectory = np.ndarray((self.N+1,self.nx))
-            self.obsatcles = env.obstacles
+            self.obstacles = env.obstacles
             
-            if self.lidar_and_moving_obstacles:
+            if self.mode == "lidar_and_moving_obstacles":
                   #obstacle constraints
                   # Initialize all obstacle values to 999. Initializing to 0 would result in numerical error in solver because
                   # derivative of sqrt(x) is undefined for x = 0
@@ -400,7 +407,7 @@ class SafetyFilter:
                         p0[3*i+2] = self.obstacles[i].width
 
 
-            elif self.lidar_detection:
+            elif self.mode == "lidar":
                   #obstacle constraint
                   # Initialize all obstacle values to 999. Initializing to 0 would result in numerical error in solver because
                   # derivative of sqrt(x) is undefined for x = 0
@@ -409,7 +416,7 @@ class SafetyFilter:
                   #Set initial parameter values corresponding to obstacle radius to -1. Deactivates constraints
                   p0[-self.max_detected_rays:] = -50
 
-            else:
+            elif self.mode == "obstacles":
                   #obstacle constraints
 
                   p0 = np.zeros((3*self.n_obst))
@@ -423,6 +430,10 @@ class SafetyFilter:
                   for i in range(self.n_moving_obst,self.n_obst):
                         p0[3*i:3*i+2] = self.obstacles[i].position
                         p0[3*i+2] = self.obstacles[i].radius
+            self.p = p0
+
+            for i in range(self.N + 1):
+                  self.ocp_solver.set(i,'p',self.p)
 
 
       def __del__(self):

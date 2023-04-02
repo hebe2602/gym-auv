@@ -28,6 +28,7 @@ class TestScenario0(BaseEnvironment):
         safety_filter_rank = -1
         if hasattr(self.vessel, 'safety_filter_rank'):
             safety_filter_rank = self.vessel.safety_filter_rank
+            safety_filter = self.vessel.safety_filter
 
 
 
@@ -36,7 +37,7 @@ class TestScenario0(BaseEnvironment):
         self.path_prog_hist = np.array([prog])
         self.max_path_prog = prog
         
-
+        self.obstacles = []
         obst_arclength = 5
         for o in range(self.n_static_obst):
             obst_radius = 10
@@ -47,6 +48,7 @@ class TestScenario0(BaseEnvironment):
             self.obstacles.append(CircularObstacle(obst_position + obst_displacement, obst_radius))
         
         if safety_filter_rank != -1:
+            self.vessel.safety_filter = safety_filter
             self.vessel.activate_safety_filter(self, safety_filter_rank)
         
         self._rewarder_class = SafetyColavRewarder
