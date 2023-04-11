@@ -141,7 +141,7 @@ def report(env, report_dir, lastn=100):
 
         #write stats to file
         data = {'rewards': rewards, 'progresses': progresses, 'cross_track_errors': cross_track_errors, 'timesteps': timesteps,
-         'durations': durations,'collisions':collisions,'goals_reached':progresses[progresses > 0.99].size, 'infesible_solutions':infeasible_solution}
+         'durations': durations,'collisions':collisions,'goals_reached':progresses[progresses > 0.99].size}
         df = pd.DataFrame(data)
         df.to_csv(os.path.join(report_dir, 'stats.csv'), index=False)
 
