@@ -252,9 +252,8 @@ class Vessel():
     def max_speed(self) -> float:
         """Returns the maximum speed of the AUV."""
         if self.config['model_type'] == 'realistic':
-            return 0.55
-        elif self.config['model_type'] == 'simplified':
-            return 1.0
+            return 0.57
+            
         return 2
 
     @property
