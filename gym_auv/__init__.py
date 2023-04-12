@@ -74,6 +74,10 @@ SCENARIOS = {
         'entry_point': 'gym_auv.envs:TestScenario0',
         'config': DEFAULT_CONFIG
     },
+    'TestScenario_3_obstacles-v0': {   
+        'entry_point': 'gym_auv.envs:TestScenario_3_obstacles',
+        'config': DEFAULT_CONFIG
+    },
     'TestScenario1-v0': {   
         'entry_point': 'gym_auv.envs:TestScenario1',
         'config': DEFAULT_CONFIG
@@ -163,6 +167,10 @@ SCENARIOS = {
     ###### SAFETY FILTER ENVS #####
     'RandomScenario0-v0': {
         'entry_point': 'gym_auv.envs:RandomScenario0',
+        'config': MOVING_CONFIG
+    },
+    'Random_static_500m-v0': {
+        'entry_point': 'gym_auv.envs:Random_static_500m',
         'config': MOVING_CONFIG
     },
     'RandomScenario1-v0': {
