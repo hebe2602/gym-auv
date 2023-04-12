@@ -26,7 +26,7 @@ DEFAULT_CONFIG = {
     "observe_frequency": 1.0,                       # Frequency of using actual obstacles instead of virtual ones for detection
 
     # ---- VESSEL ---- #
-    'model_type': 'simplified', #'realistic',                     # Type of vessel model used. Opts = {'simplified', 'realistic'}
+    'model_type': 'realistic', #'realistic',                     # Type of vessel model used. Opts = {'simplified', 'realistic'}
     'thrust_max_auv': 2.0,                          # Maximum thrust of the AUV [N]
     'moment_max_auv': 0.15,                         # maximum moment applied to the AUV [Nm]
     "vessel_width": 1.255,                          # Width of vessel [m]
@@ -53,8 +53,8 @@ DEFAULT_CONFIG = {
     # ---- SAFETY FILTER ---- #
     "safety_filter": True,                          # Whether to use safety filter
     "lidar_obstacle_detection": True,               # Whether to use lidar to detect obstacles in safety filter
-    "lidar_and_moving_obstacles": True,            # Whether to both use lidar to detect obstacles and moving obstacles information in safety filter
-    "SSH": True                                    # Disable graphics to start training with SSH
+    "lidar_and_moving_obstacles": False,            # Whether to both use lidar to detect obstacles and moving obstacles information in safety filter
+    "SSH": False                                    # Disable graphics to start training with SSH
 }
 
 MOVING_CONFIG = DEFAULT_CONFIG.copy()
@@ -73,6 +73,10 @@ REALWORLD_CONFIG["render_distance"] = 300#2000
 SCENARIOS = {
     'TestScenario0-v0': {   
         'entry_point': 'gym_auv.envs:TestScenario0',
+        'config': DEFAULT_CONFIG
+    },
+    'TestScenario_3_obstacles-v0': {   
+        'entry_point': 'gym_auv.envs:TestScenario_3_obstacles',
         'config': DEFAULT_CONFIG
     },
     'TestScenario1-v0': {   
@@ -164,6 +168,10 @@ SCENARIOS = {
     ###### SAFETY FILTER ENVS #####
     'RandomScenario0-v0': {
         'entry_point': 'gym_auv.envs:RandomScenario0',
+        'config': MOVING_CONFIG
+    },
+    'Random_static_500m-v0': {
+        'entry_point': 'gym_auv.envs:Random_static_500m',
         'config': MOVING_CONFIG
     },
     'RandomScenario1-v0': {

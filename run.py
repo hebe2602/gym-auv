@@ -643,9 +643,9 @@ def main(args):
 
         ### CALLBACKS ###
         # Things we want to do: calculate statistics, say 1000 times during training.
-        total_timesteps = 1000000 #10000000
+        total_timesteps = 2000000 #10000000
         save_stats_freq = total_timesteps // 100  # Save stats 1000 times during training (EveryNTimesteps)
-        save_agent_freq = total_timesteps // 100   # Save the agent 100 times throughout training
+        save_agent_freq = total_timesteps // 10   # Save the agent 100 times throughout training
         record_agent_freq = total_timesteps // 1  # Evaluate and record 10 times during training (EvalCallback)
         # StopTrainingOnRewardThreshold could be used when setting total_timesteps = "inf" and stop the training when the agent is perfect. To see how long it actually takes.
         # CallbackList : [list, of, sequential, callbacks]

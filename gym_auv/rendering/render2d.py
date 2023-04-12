@@ -494,8 +494,15 @@ def _render_safety_zone(env):
     #render safe trajectory
     env._viewer2d.draw_polyline(env.vessel.safe_trajectory[:,0:2], linewidth=2, color=(0.8, 0.3, 0.3, 0.8))
 
-        
+def _render_lidar_detection_obstacles(env):
 
+    obs_params = env.vessel.safety_filter.p
+    n_obs = int(len(obs_params)/3)
+    obstacles = zip(obs_params[:n_obs], obs_params[n_obs:2*n_obs], obs_params[-n_obs:])
+    for obs in obstacles:
+        if obs[2] > 0:
+            env._viewer2d.draw_circle(origin=obs[:2], radius=obs[2], color=(1.0,0.0,0.0))
+        
 def _render_tiles(env, win):
     global env_bg
     global bg
@@ -595,6 +602,7 @@ def render_env(env, mode):
         _render_obstacles(env)
         if env.vessel._use_safety_filter:
             _render_safety_zone(env)
+           # _render_lidar_detection_obstacles(env)
         #_render_feasible_distances(env)
         if env.path is not None:
             _render_progress(env)
