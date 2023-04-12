@@ -131,7 +131,7 @@ def report(env, report_dir, lastn=100):
             if len(speeds) > 0:
                 f.write('{:<30}{:<30.2f}\n'.format('Max. Speed', speeds.max()))
             if len(infeasible_solution) > 0:
-                print('infeasible_solution', infeasible_solution)
+                print('infeasible_solutions', infeasible_solution.sum())
                 f.write('{:<30}{:<30}\n'.format('Infeasible Solutions', infeasible_solution.sum()))
             else:
                 f.write('{:<30}{:<30}\n'.format('Infeasible Solutions', 0))

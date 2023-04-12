@@ -133,6 +133,10 @@ def play_scenario(env, recorded_env, args, agent=None):
         if k == key.R:
             restart = True
             print('Restart')
+        if k == key.P:
+            from gym_auv.rendering.render2d import save_screenshot
+            save_screenshot(env, 'screenshot.png')
+            print('Saved screenshot to screenshot.png')
         if k == key.Q:
             quit = True
             print('quit')

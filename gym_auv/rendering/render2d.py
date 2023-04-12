@@ -39,7 +39,7 @@ WINDOW_H = VIDEO_H
 SCALE       = 5.0        # Track scale
 PLAYFIELD   = 5000   # Game over boundary
 FPS         = 50
-ZOOM        = 2       # Camera ZOOM
+ZOOM        = 5       # Camera ZOOM
 DYNAMIC_ZOOM = False
 CAMERA_ROTATION_SPEED = 0.02
 env_bg_h = int(2*PLAYFIELD)
@@ -715,3 +715,11 @@ def init_env_viewer(env):
                                                         color=(0, 0, 0, 255))
 
     print('Initialized 2D viewer')
+
+from PIL import Image
+def save_screenshot(env, filename):
+    img = env.render(mode='rgb_array')
+    img = Image.fromarray(img)
+    img.save(filename)
+
+

@@ -12,8 +12,8 @@ import shapely.geometry, shapely.errors
 import os 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-vessel_speed_vals = np.loadtxt('resources/speed_vals2.txt')
-vessel_speed_density = np.loadtxt('resources/speed_density2.txt')
+vessel_speed_vals = np.loadtxt('resources/speed_vals3.txt')
+vessel_speed_density = np.loadtxt('resources/speed_density3.txt')
 
 class MovingObstacles(BaseEnvironment):
 
@@ -182,9 +182,9 @@ class RandomScenario1(MovingObstacles):
         self._n_waypoints = 2 # Curve complexity: more waypoints --> more turns. Remove to get random complexity.
         self.n_moving_obst = 5
         self.n_static_obst = 5
-        self.displacement_dist_std = 150
-        self.static_obst_radius_mean = 30
-        self.moving_obst_radius_mean = 20
+        self.displacement_dist_std = 100 #150
+        self.static_obst_radius_mean = 25 #30
+        self.moving_obst_radius_mean = 15 #20
         self._rewarder_class = SafetyColavRewarder
         super().__init__(*args, **kwargs)
         
@@ -198,7 +198,7 @@ class RandomScenario1(MovingObstacles):
 
         # Initializing path
 
-        self.path = RandomCurveThroughOrigin(self.rng, self._n_waypoints, length=1000)
+        self.path = RandomCurveThroughOrigin(self.rng, self._n_waypoints, length=500)
 
         # Initializing vessel
         init_state = self.path(0)

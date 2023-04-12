@@ -251,6 +251,10 @@ class Vessel():
     @property
     def max_speed(self) -> float:
         """Returns the maximum speed of the AUV."""
+        if self.config['model_type'] == 'realistic':
+            return 0.55
+        elif self.config['model_type'] == 'simplified':
+            return 1.0
         return 2
 
     @property
@@ -316,12 +320,20 @@ class Vessel():
 
         if self._use_safety_filter:
             #Check if safety filter has crashed
+
             if self.safety_filter.infeasible_solution and self._step_counter > 10:
                 #Logging
                 self.safety_filter.env.history['infeasible_solution'] = np.array([1])
                 
-                print('creating new safety filter')
+                print('Crashed on step {}, creating new safety filter'.format(self._step_counter))
                 self.safety_filter = SafetyFilter(self.safety_filter.env, self.safety_filter.rank, self.config['model_type'])
+            
+            elif self.safety_filter.infeasible_solution:
+
+                print('Crashed on initialization, creating new safety filter')
+                self.safety_filter = SafetyFilter(self.safety_filter.env, self.safety_filter.rank, self.config['model_type'])
+
+
 
             #Update obstacles with lidar data
             if self.safety_filter.mode =="lidar" or self.safety_filter.mode == "lidar_and_moving_obstacles":
@@ -353,6 +365,7 @@ class Vessel():
         """
         self.safety_filter_rank = rank
         self._use_safety_filter = True
+
 
         if self.safety_filter is None:
             self.safety_filter = SafetyFilter(env, rank, self.config['model_type'])

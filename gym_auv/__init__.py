@@ -26,7 +26,7 @@ DEFAULT_CONFIG = {
     "observe_frequency": 1.0,                       # Frequency of using actual obstacles instead of virtual ones for detection
 
     # ---- VESSEL ---- #
-    'model_type': 'simplified', #'realistic',       # Type of vessel model used. Opts = {'simplified', 'realistic'}
+    'model_type': 'realistic', #'realistic',       # Type of vessel model used. Opts = {'simplified', 'realistic'}
     'thrust_max_auv': 2.0,                          # Maximum thrust of the AUV [N]
     'moment_max_auv': 0.15,                         # maximum moment applied to the AUV [Nm]
     "vessel_width": 1.255,                          # Width of vessel [m]
@@ -53,7 +53,7 @@ DEFAULT_CONFIG = {
     # ---- SAFETY FILTER ---- #
     "safety_filter": True,                              # Whether to use safety filter
     "safety_filter_mode": 'lidar_and_moving_obstacles', # Which safety filter mode to use. Opts = {'obstacles', 'lidar', 'lidar_and_moving_obstacles'}
-    "SSH": True                                        # Disable graphics to start training with SSH
+    "SSH": False                                        # Disable graphics to start training with SSH
 }
 
 MOVING_CONFIG = DEFAULT_CONFIG.copy()
