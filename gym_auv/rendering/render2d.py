@@ -39,7 +39,7 @@ WINDOW_H = VIDEO_H
 SCALE       = 5.0        # Track scale
 PLAYFIELD   = 5000   # Game over boundary
 FPS         = 50
-ZOOM        = 2       # Camera ZOOM
+ZOOM        = 5       # Camera ZOOM
 DYNAMIC_ZOOM = False
 CAMERA_ROTATION_SPEED = 0.02
 env_bg_h = int(2*PLAYFIELD)
@@ -479,33 +479,33 @@ def _render_obstacles(env):
         elif isinstance(obst, VesselObstacle):
             env._viewer2d.draw_shape(list(obst.boundary.exterior.coords), color=c)
 
-#create square safety zone for rendenring
-
 
 def _render_safety_zone(env):
 
     #render safety zone
-    if isinstance(env.vessel.safety_zone, Polygon): 
-        env._viewer2d.draw_shape(list(env.vessel.safety_zone.exterior.coords), color=(0.3, 0.8, 0.3, 0.2))
+    #if isinstance(env.vessel.safety_zone, Polygon): 
+        #env._viewer2d.draw_shape(list(env.vessel.safety_zone.exterior.coords), color=(0.3, 0.8, 0.3, 0.2))
     
     #render terminal set
-    if isinstance(env.vessel.terminal_set, Polygon):
-        env._viewer2d.draw_shape(list(env.vessel.terminal_set.exterior.coords), color=(0.8, 0.3, 0.8, 0.2))
+    #if isinstance(env.vessel.terminal_set, Polygon):
+         #env._viewer2d.draw_shape(list(env.vessel.terminal_set.exterior.coords), color=(0.8, 0.3, 0.8, 0.2))
+    #     print("terminal set", env.vessel.safety_zone)
 
     #render safe trajectory
     env._viewer2d.draw_polyline(env.vessel.safe_trajectory[:,0:2], linewidth=2, color=(0.8, 0.3, 0.3, 0.8))
 
+def _render_lidar_detection_obstacles(env):
 
-
-
-
-
+    obs_params = env.vessel.safety_filter.p
+    n_obs = int(len(obs_params)/3)
+    obstacles = zip(obs_params[:n_obs], obs_params[n_obs:2*n_obs], obs_params[-n_obs:])
+    for obs in obstacles:
+        if obs[2] > 0:
+            env._viewer2d.draw_circle(origin=obs[:2], radius=obs[2], color=(1.0,0.0,0.0))
         
-
 def _render_tiles(env, win):
     global env_bg
     global bg
-
     if env_bg is None:
         # Initialise background
         from pyglet.gl.gl import GLubyte
@@ -600,7 +600,9 @@ def render_env(env, mode):
         _render_vessel(env)
         _render_tiles(env, win)
         _render_obstacles(env)
-        _render_safety_zone(env)
+        if env.vessel._use_safety_filter:
+            _render_safety_zone(env)
+            _render_lidar_detection_obstacles(env)
         #_render_feasible_distances(env)
         if env.path is not None:
             _render_progress(env)
@@ -721,3 +723,11 @@ def init_env_viewer(env):
                                                         color=(0, 0, 0, 255))
 
     print('Initialized 2D viewer')
+
+from PIL import Image
+def save_screenshot(env, filename):
+    img = env.render(mode='rgb_array')
+    img = Image.fromarray(img)
+    img.save(filename)
+
+

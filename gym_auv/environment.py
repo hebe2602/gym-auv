@@ -5,7 +5,7 @@ from gym.utils import seeding
 from gym_auv.objects.vessel import Vessel
 from gym_auv.objects.rewarder import ColavRewarder, PathRewarder
 import gym_auv.rendering.render2d as render2d
-import gym_auv.rendering.render3d as render3d
+#import gym_auv.rendering.render3d as render3d
 from abc import ABC, abstractmethod
 
 import tables
@@ -66,7 +66,8 @@ class BaseEnvironment(gym.Env, ABC):
                                       'timesteps',
                                       'duration',
                                       'progress',
-                                      'pathlength'
+                                      'pathlength',
+                                      'infeasible_solution',
                                       ], np.array([]))
         #self.history = []
 
@@ -110,14 +111,15 @@ class BaseEnvironment(gym.Env, ABC):
         # Initializing rendering
         self._viewer2d = None
         self._viewer3d = None
-        if self.render_mode == '2d' or self.render_mode == 'both':
-            render2d.init_env_viewer(self)
-        if self.render_mode == '3d' or self.render_mode == 'both':
-            if self.config['render_distance'] == 'random':
-                self.render_distance = self.rng.randint(300, 2000)
-            else:
-                self.render_distance = self.config['render_distance']
-            render3d.init_env_viewer(self, autocamera=self.config["autocamera3d"], render_dist=self.render_distance)
+        if not env_config['SSH']:
+            if self.render_mode == '2d' or self.render_mode == 'both':
+                render2d.init_env_viewer(self)
+            if self.render_mode == '3d' or self.render_mode == 'both':
+                if self.config['render_distance'] == 'random':
+                    self.render_distance = self.rng.randint(300, 2000)
+                else:
+                    self.render_distance = self.config['render_distance']
+                render3d.init_env_viewer(self, autocamera=self.config["autocamera3d"], render_dist=self.render_distance)
 
         self.reset()
         print("BaseEnvironment init complete")
@@ -146,6 +148,7 @@ class BaseEnvironment(gym.Env, ABC):
         # Seeding
         if self.rng is None:
             self.seed()
+
 
         # Saving information about episode
         if self.t_step:
@@ -183,7 +186,6 @@ class BaseEnvironment(gym.Env, ABC):
         self._tmp_storage = {
             'cross_track_error': [],
         }
-
         return obs
 
     def observe(self):  # -> np.ndarray:
@@ -325,6 +327,7 @@ class BaseEnvironment(gym.Env, ABC):
             'path_taken': np.array(self.vessel.path_taken),
             'obstacles': np.array(self.obstacles)
         }
+
         if save_history:
             stats = {
                 'cross_track_error': np.array(self._tmp_storage['cross_track_error']).mean(),
@@ -334,7 +337,8 @@ class BaseEnvironment(gym.Env, ABC):
                 'timesteps': self.t_step,
                 'duration': self.t_step*self.config["t_step_size"],
                 'progress': self.progress,
-                'pathlength': self.path.length
+                'pathlength': self.path.length,
+                'infeasible_solution': [],
             }
             for key in self.history.keys():
                 self.history[key] = np.append(self.history[key], stats[key])

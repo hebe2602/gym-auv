@@ -24,6 +24,8 @@ from shapely import speedups
 from stable_baselines3.common.callbacks import EveryNTimesteps, EventCallback, BaseCallback, EvalCallback
 import queue
 from collections import deque
+import matplotlib.pyplot as plt
+
 
 ### HANNAH
 #from gym_auv.utils.radarCNN import LidarCNN_pretrained, PerceptionNavigationExtractor
@@ -68,6 +70,11 @@ def make_mp_env(env_id, rank, envconfig, seed=0, pilot=None):
     def _init():
         env = create_env(env_id, envconfig, pilot=pilot)
         env.seed(seed + rank)
+
+        if envconfig['safety_filter']:
+            #activate safety filter with rank
+            env.vessel.activate_safety_filter(env, rank)
+
         return env
     set_random_seed(seed)
     return _init
@@ -100,7 +107,7 @@ def play_scenario(env, recorded_env, args, agent=None):
 
     def key_press(k, mod):
         nonlocal autopilot
-        if k == key.DOWN:  key_input[0] = -1
+        if k == key.DOWN:  key_input[0] = 0
         if k == key.UP:    key_input[0] = 1
         if k == key.LEFT:  key_input[1] = 0.5
         if k == key.RIGHT: key_input[1] = -0.5
@@ -126,6 +133,10 @@ def play_scenario(env, recorded_env, args, agent=None):
         if k == key.R:
             restart = True
             print('Restart')
+        if k == key.P:
+            from gym_auv.rendering.render2d import save_screenshot
+            save_screenshot(env, 'screenshot.png')
+            print('Saved screenshot to screenshot.png')
         if k == key.Q:
             quit = True
             print('quit')
@@ -144,13 +155,16 @@ def play_scenario(env, recorded_env, args, agent=None):
         if k == key.NUM_4 and key_input[6] != 0: key_input[6] = 0
         if k == key.NUM_3 and key_input[6] != 0: key_input[6] = 0
 
-    viewer = env.env._viewer2d if args.render in {'both', '2d'} else env._viewer3d
+
+    viewer = env.env._viewer2d if args.render in {'both', '2d'} else env.viewer3d
     viewer.window.on_key_press = key_press
     viewer.window.on_key_release = key_release
 
     env.reset()
 
-    env.vessel.activate_safety_filter(env)
+    if env.config['safety_filter']:
+        #activate safety filter
+        env.vessel.activate_safety_filter(env, 0)
     try:
         while True:
             t = time()
@@ -184,11 +198,11 @@ def play_scenario(env, recorded_env, args, agent=None):
                     except KeyError:
                         pass
                     if args.render in {'3d', 'both'}:
-                        env._viewer3d.camera_height += 0.15*key_input[3]
-                        env._viewer3d.camera_height = max(0, env._viewer3d.camera_height)
-                        env._viewer3d.camera_distance += 0.3*key_input[4]
-                        env._viewer3d.camera_distance = max(1, env._viewer3d.camera_distance)
-                        env._viewer3d.camera_angle += 0.3*key_input[5]
+                        env.viewer3d.camera_height += 0.15*key_input[3]
+                        env.viewer3d.camera_height = max(0, env.viewer3d.camera_height)
+                        env.viewer3d.camera_distance += 0.3*key_input[4]
+                        env.viewer3d.camera_distance = max(1, env.viewer3d.camera_distance)
+                        env.viewer3d.camera_angle += 0.3*key_input[5]
 
                     elif args.render == '2d':
                         env.env._viewer2d.camera_zoom += 0.1*key_input[4]
@@ -234,9 +248,11 @@ def play_scenario(env, recorded_env, args, agent=None):
             
             env.seed(np.random.randint(1000))
             env.save_latest_episode()
-            gym_auv.reporting.report(env, report_dir='logs/play_results/')
-            gym_auv.reporting.plot_trajectory(figure_folder, env, fig_dir='logs/play_results/')
+            #gym_auv.reporting.report(env, report_dir='logs/play_results/')
+            #gym_auv.reporting.plot_trajectory(figure_folder, env, fig_dir='logs/play_results/')
             env.reset(save_history=False)
+
+            
         
             # if gail_ep_idx >= gail_num_episodes and gail_expert_generation:
             #     gail_observations = np.concatenate(gail_observations).reshape((-1,) + env.observation_space.shape)
@@ -266,7 +282,7 @@ def main(args):
     envconfig.update(custom_envconfig)
 
     #NUM_CPU = multiprocessing.cpu_count()
-    NUM_CPU = 8
+    NUM_CPU = 8 #8
     #torch.set_num_threads(multiprocessing.cpu_count()//4)
     #print("Pytorch using {} threads".format(torch.get_num_threads()))
 
@@ -318,6 +334,11 @@ def main(args):
             video_length=args.recording_length, name_prefix=(args.env if args.video_name == 'auto' else args.video_name)
         )
         obs = recorded_env.reset()
+
+        if envconfig['safety_filter']:
+            #activate safety filter
+            env.vessel.activate_safety_filter(env, 0)
+
         state = None
         t_steps = 0
         ep_number = 1
@@ -365,6 +386,8 @@ def main(args):
         if (args.agent is not None):
             agent = model.load(args.agent)
             agent.set_env(vec_env)
+
+
         else:
             if (model == PPO):
                 if args.recurrent:
@@ -560,13 +583,10 @@ def main(args):
         def callback(_locals, _globals):
             nonlocal n_updates
             nonlocal n_episodes
-
             sys.stdout.write('Training update: {}\r'.format(n_updates))
             sys.stdout.flush()
-
             _self = _locals['self']
             vec_env = _self.get_env()
-
             class Struct(object): pass
             report_env = Struct()
             report_env.history = []
@@ -576,17 +596,14 @@ def main(args):
             report_env.last_episode = vec_env.get_attr('last_episode')[0]
             report_env.config = vec_env.get_attr('config')[0]
             report_env.obstacles = vec_env.get_attr('obstacles')[0]
-
             env_histories = vec_env.get_attr('history')
             for episode in range(max(map(len, env_histories))):
                 for env_idx in range(len(env_histories)):
                     if (episode < len(env_histories[env_idx])):
                         report_env.history.append(env_histories[env_idx][episode])
             report_env.episode = len(report_env.history) + 1
-
             total_t_steps = _self.get_env().get_attr('total_t_steps')[0]*num_cpu
             agent_filepath = os.path.join(agent_folder, str(total_t_steps) + '.pkl')
-
             if model == PPO:
                 recording_criteria = n_updates % 10 == 0
                 report_criteria = True
@@ -603,8 +620,6 @@ def main(args):
                 report_criteria = report_env.episode > n_episodes
                 if save_criteria:
                     _self.save(agent_filepath)
-
-
             if report_env.last_episode is not None and len(report_env.history) > 0 and report_criteria:
                 try:
                     #gym_auv.reporting.plot_trajectory(report_env, fig_dir=scenario_folder, fig_prefix=args.env + '_ep_{}'.format(report_env.episode))
@@ -613,7 +628,6 @@ def main(args):
                 except OSError as e:
                     print("Ignoring reporting OSError:")
                     print(repr(e))
-
             if recording_criteria:
                 if args.pilot:
                     cmd = 'python run.py enjoy {} --agent "{}" --video-dir "{}" --video-name "{}" --recording-length {} --algo {} --pilot {} --envconfig {}{}'.format(
@@ -633,10 +647,10 @@ def main(args):
 
         ### CALLBACKS ###
         # Things we want to do: calculate statistics, say 1000 times during training.
-        total_timesteps = 10000000
-        save_stats_freq = total_timesteps // 1000  # Save stats 1000 times during training (EveryNTimesteps)
-        save_agent_freq = total_timesteps // 100   # Save the agent 100 times throughout training
-        record_agent_freq = total_timesteps // 10  # Evaluate and record 10 times during training (EvalCallback)
+        total_timesteps = 1000000 #10000000
+        save_stats_freq = total_timesteps // 100  # Save stats 1000 times during training (EveryNTimesteps)
+        save_agent_freq = total_timesteps // 10   # Save the agent 100 times throughout training
+        record_agent_freq = total_timesteps // 1  # Evaluate and record 10 times during training (EvalCallback)
         # StopTrainingOnRewardThreshold could be used when setting total_timesteps = "inf" and stop the training when the agent is perfect. To see how long it actually takes.
         # CallbackList : [list, of, sequential, callbacks]
 
@@ -676,7 +690,7 @@ def main(args):
                 #self.report.history = MaxSizeList(save_stats_freq)
                 self.report = self.vec_env.get_attr("history")[0]
                 for stat in self.report.keys():
-                    self.report[stat] = MaxSizeList(save_stats_freq)
+                    self.report[stat] = []
 
             def _init_callback(self) -> None:
                 # Create folder if needed
@@ -707,8 +721,12 @@ def main(args):
                     stats = np.array(self.vec_env.get_attr("history"))[done_array]
                     for _env in stats:
                         for stat in _env.keys():
-                            self.logger.record('stats/'+stat, _env[stat])
-                            self.report[stat].append(_env[stat])
+                            #self.logger.record('stats/'+stat, _env[stat])
+                            if len(_env[stat]) > 0:
+                                self.report[stat].append(_env[stat][-1])
+
+                if self.num_timesteps % self.save_stats_freq == 0:
+                    gym_auv.reporting.report(self.report, report_dir=figure_folder)
 
                 # Update the progress bar (n_calls is automatically incremented on each step)
                 #self.bar.update(self.num_timesteps)
@@ -721,12 +739,13 @@ def main(args):
                 #            self.report.history.append(env_histories[env_idx][episode])
 
 
-                #if self.num_timesteps % self.save_stats_freq == 0 and len(self.report.history) > 1:
-                #   self.report.last_episode = self.training_env.get_attr('last_episode')[0]
-                #    self.report.obstacles = self.training_env.get_attr('obstacles')[0]
-                #    self.report.episode = self.n_episodes
-                #
-                #    gym_auv.reporting.report(self.report, report_dir=figure_folder)
+                # if self.num_timesteps % self.save_stats_freq == 0 and len(self.report.history) > 1:
+                #     self.report.last_episode = self.training_env.get_attr('last_episode')[0]
+                #     self.report.obstacles = self.training_env.get_attr('obstacles')[0]
+                #     self.report.episode = self.n_episodes
+                
+                #     gym_auv.reporting.report(self.report, report_dir=figure_folder)
+
 
                 if self.num_timesteps % self.save_agent_freq == 0:
                     print("Saving agent after", self.num_timesteps, "timesteps")
@@ -739,14 +758,16 @@ def main(args):
                 #            recording_length, args.algo, args.pilot, envconfig_string,
                 #            ' --recurrent' if args.recurrent else ''
                 #        )
-                if self.num_timesteps % self.record_agent_freq == 0:
-                    agent_filepath = os.path.join(self.log_dir, str(self.num_timesteps) + '.pkl')
-                    cmd = 'python run.py enjoy {} --agent "{}" --video-dir "{}" --video-name "{}" --recording-length {} --algo {} --envconfig {}{}'.format(
-                        args.env, agent_filepath, video_folder, args.env + '-' + str(self.num_timesteps),
-                        recording_length, args.algo, envconfig_string,
-                        ' --recurrent' if args.recurrent else ''
-                    )
-                    subprocess.Popen(cmd)
+                #if self.num_timesteps % self.record_agent_freq == 0:
+                    #agent_filepath = os.path.join(self.log_dir, str(self.num_timesteps) + '.pkl')
+                    # cmd = 'python run.py enjoy {} --agent "{}" --video-dir "{}" --video-name "{}" --recording-length {} --algo {} --envconfig {}{}'.format(
+                    #     args.env, agent_filepath, video_folder, args.env + '-' + str(self.num_timesteps),
+                    #     recording_length, args.algo, envconfig_string,
+                    #     ' --recurrent' if args.recurrent else ''
+                    # )
+                    #cmd = 'python run.py enjoy {} --agent "{}"'.format(
+                        #args.env, agent_filepath)
+                    #subprocess.Popen(cmd, shell=True)
 
                 return True
 
@@ -757,7 +778,7 @@ def main(args):
         agent.learn(
             total_timesteps=total_timesteps,
             tb_log_name='log',
-            callback=callback
+            callback=callback, 
         )
 
     elif (args.mode in ['policyplot', 'vectorfieldplot', 'streamlinesplot']):
@@ -785,6 +806,7 @@ def main(args):
 
         else:
             env = create_env(env_id, envconfig, test_mode=True, pilot=args.pilot)
+            print(type(env.config))
             with open(os.path.join(figure_folder, 'config.json'), 'w') as f:
                 json.dump(env.config, f)
 
@@ -821,6 +843,10 @@ def main(args):
             )
             active_env = recorded_env if args.video else vec_env
 
+            if envconfig['safety_filter']:
+                #activate safety filter
+                env.vessel.activate_safety_filter(env, 0)
+
             return env, active_env
 
         failed_tests = []
@@ -829,6 +855,9 @@ def main(args):
 
             if env is None or active_env is None:
                 env, active_env = create_test_env(video_name_prefix=args.env + '_'  + id)
+                if envconfig['safety_filter']:
+                    #activate safety filter
+                    env.vessel.activate_safety_filter(env, 0)
 
             if scenario is not None:
                 obs = active_env.reset()
@@ -886,10 +915,10 @@ def main(args):
                     f.write(', '.join(map(str, failed_tests)))
 
             # Thomas: uncomment after fixing logging to HDF5-files in training
-            gym_auv.reporting.report(env, report_dir=report_dir, lastn=100)
+            gym_auv.reporting.report(env.history, report_dir=report_dir, lastn=100)
 
-            #gym_auv.reporting.plot_trajectory(env, fig_dir=scenario_folder, fig_prefix=(args.env + '_' + id))
-            #env.save(os.path.join(scenario_folder, id))
+            # gym_auv.reporting.plot_trajectory(env, fig_dir=scenario_folder, fig_prefix=(args.env + '_' + id))
+            # env.save(os.path.join(scenario_folder, id))
 
             return copy.deepcopy(env.last_episode)
 
@@ -901,7 +930,6 @@ def main(args):
         if args.testvals:
             testvals = json.load(open(args.testvals, 'r'))
             valuegrid = list(ParameterGrid(testvals))
-
         if args.scenario:
             if args.testvals:
                 episode_dict = {}
@@ -925,25 +953,54 @@ def main(args):
                 run_test("ep0", reset=True, scenario=args.scenario, max_t_steps=5000)
 
         else:
-            if args.testvals:
-                episode_dict = {}
-                agent_index = 1
-                for valuedict in valuegrid:
-                    customconfig = envconfig.copy()
-                    customconfig.update(valuedict)
-                    env, active_env = create_test_env(envconfig=customconfig)
-                    valuedict_str = '_'.join((key + '-' + str(val) for key, val in valuedict.items()))
+            safety_filter_comparison = False
+            agents = ['10000.pkl', '50000.pkl', '100000.pkl', '500000.pkl']
+            agent_path = args.agent[:-9]
 
-                    colorval = np.log10(valuedict['reward_lambda']) #should be general
+            if safety_filter_comparison:
+                episode_dict = {}
+                agent_index = 0
+
+                customconfig = envconfig.copy()
+                env, active_env = create_test_env(envconfig=customconfig, video_name_prefix=args.env)
+                valuedict_str = "test"
+
+                
+                rep_subfolder = os.path.join(figure_folder, valuedict_str)
+                os.makedirs(rep_subfolder, exist_ok=True)
+                idx = 0
+
+
+                colors = ['b', 'r', 'orange','purple']
+                for episode in range(args.episodes):
+                    #if episode % 2 == 0:
                     
-                    rep_subfolder = os.path.join(figure_folder, valuedict_str)
-                    os.makedirs(rep_subfolder, exist_ok=True)
-                    for episode in range(args.episodes):
-                         last_episode = run_test(valuedict_str + '_ep' + str(episode), report_dir=rep_subfolder)
+                    envconfig['safety_filter'] = True
+                    agent = model.load(agent_path + agents[idx])
+                    colorval = colors[idx]
+                    
+                    idx += 1
+
+                    # else:
+                    #     envconfig['safety_filter'] = False
+                    #     colorval = "orangered"
+
+
+                    last_episode = run_test(valuedict_str + '_ep' + str(episode), report_dir=rep_subfolder, max_t_steps=10000)
                     episode_dict['Agent ' + str(agent_index)] = [last_episode, colorval]
                     agent_index += 1
-                
-                gym_auv.reporting.plot_trajectory(figure_folder, env, fig_dir=figure_folder, fig_prefix=(args.env + '_all_agents'), episode_dict=episode_dict)
+
+                env.last_episode = last_episode
+
+
+                #find failed indices
+                failed_idx = []
+                for failed_test in failed_tests:
+                    failed_idx.append(int(failed_test[-1]))
+                #print('failed_idx', failed_idx)
+
+                          
+                gym_auv.reporting.plot_many_trajectories(figure_folder, env, fig_dir=figure_folder, fig_prefix=(args.env + '_all_agents'), episode_dict=episode_dict, failed_idx=failed_idx)
             else:
                 env, active_env = create_test_env(video_name_prefix=args.env)
                 for episode in range(args.episodes):
@@ -1063,4 +1120,3 @@ if __name__ == '__main__':
     #except Exception as e:
     #    toaster.show_toast("run.py", "Program has crashed", duration=10)
     #    raise e
-    

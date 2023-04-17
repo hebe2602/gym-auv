@@ -16,16 +16,17 @@ def sector_partition_fun(env, isensor, c=0.1):
 DEFAULT_CONFIG = {
     # ---- EPISODE ---- #
     "min_cumulative_reward": -2000,                 # Minimum cumulative reward received before episode ends
-    "max_timesteps": 10000,                         # Maximum amount of timesteps before episode ends
-    "min_goal_distance": 5,                         # Minimum aboslute distance to the goal position before episode ends
+    "max_timesteps": 2000, #10000,                         # Maximum amount of timesteps before episode ends
+    "min_goal_distance": 0.5, #5,                         # Minimum aboslute distance to the goal position before episode ends
     "min_path_progress": 0.99,                      # Minimum path progress before scenario is considered successful and the episode ended
     
     # ---- SIMULATION ---- #
-    "t_step_size": 0.5,                             # Length of simulation timestep [s]
+    "t_step_size": 1.0, #0.5,                             # Length of simulation timestep [s]
     "sensor_frequency": 1.0,                        # Sensor execution frequency (0.0 = never execute, 1.0 = always execute)
     "observe_frequency": 1.0,                       # Frequency of using actual obstacles instead of virtual ones for detection
 
     # ---- VESSEL ---- #
+    'model_type': 'realistic', #'realistic',       # Type of vessel model used. Opts = {'simplified', 'realistic'}
     'thrust_max_auv': 2.0,                          # Maximum thrust of the AUV [N]
     'moment_max_auv': 0.15,                         # maximum moment applied to the AUV [Nm]
     "vessel_width": 1.255,                          # Width of vessel [m]
@@ -34,7 +35,7 @@ DEFAULT_CONFIG = {
     'render_distance': 300,                         # 3D rendering render distance [m]
     "sensing": True,                                # Whether rangerfinder sensors for perception should be activated
     "sensor_interval_load_obstacles": 25,           # Interval for loading nearby obstacles
-    "n_sensors_per_sector": 5,                     # Number of rangefinder sensors within each sector
+    "n_sensors_per_sector": 20,                     # Number of rangefinder sensors within each sector
     "n_sectors": 9,                                 # Number of sensor sectors
     "sector_partition_fun": sector_partition_fun,   # Function that returns corresponding sector for a given sensor index
     "sensor_rotation": False,                       # Whether to activate the sectors in a rotating pattern (for performance reasons)
@@ -47,7 +48,12 @@ DEFAULT_CONFIG = {
     
     # ---- RENDERING ---- #
     "show_indicators": True,                        # Whether to show debug information on screen during 2d rendering.
-    "autocamera3d": True                            # Whether to let the camera automatically rotate during 3d rendering
+    "autocamera3d": True,                            # Whether to let the camera automatically rotate during 3d rendering
+
+    # ---- SAFETY FILTER ---- #
+    "safety_filter": True,                              # Whether to use safety filter
+    "safety_filter_mode": 'lidar', # Which safety filter mode to use. Opts = {'obstacles', 'lidar', 'lidar_and_moving_obstacles'}
+    "SSH": True                                        # Disable graphics to start training with SSH
 }
 
 MOVING_CONFIG = DEFAULT_CONFIG.copy()
@@ -66,6 +72,10 @@ REALWORLD_CONFIG["render_distance"] = 300#2000
 SCENARIOS = {
     'TestScenario0-v0': {   
         'entry_point': 'gym_auv.envs:TestScenario0',
+        'config': DEFAULT_CONFIG
+    },
+    'TestScenario_3_obstacles-v0': {   
+        'entry_point': 'gym_auv.envs:TestScenario_3_obstacles',
         'config': DEFAULT_CONFIG
     },
     'TestScenario1-v0': {   
@@ -153,7 +163,26 @@ SCENARIOS = {
         'entry_point': 'gym_auv.envs:Env4',
         'config': MOVING_CONFIG
     },
+
+    ###### SAFETY FILTER ENVS #####
+    'RandomScenario0-v0': {
+        'entry_point': 'gym_auv.envs:RandomScenario0',
+        'config': MOVING_CONFIG
+    },
+    'Random_static_500m-v0': {
+        'entry_point': 'gym_auv.envs:Random_static_500m',
+        'config': MOVING_CONFIG
+    },
+    'RandomScenario1-v0': {
+        'entry_point': 'gym_auv.envs:RandomScenario1',
+        'config': MOVING_CONFIG
+    },
+    'SafetyTestScenario-v0': {
+        'entry_point': 'gym_auv.envs:SafetyTestScenario',
+        'config': MOVING_CONFIG
+    },
 }
+
 
 for scenario in SCENARIOS:
     register(

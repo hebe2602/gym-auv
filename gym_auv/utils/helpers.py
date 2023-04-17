@@ -3,7 +3,7 @@ import gym_auv.utils.geomutils as geom
 
 def generate_obstacle(rng, path, vessel, displacement_dist_std=150, obst_radius_distr=np.random.poisson, obst_radius_mean=30):
     min_distance = 0
-    while min_distance <= 0:
+    while min_distance <= 100:
         obst_displacement_dist = np.random.normal(0, displacement_dist_std)
         obst_arclength = (0.1 + 0.8*rng.rand())*path.length
         obst_position = path(obst_arclength)

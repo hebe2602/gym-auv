@@ -12,6 +12,7 @@ from gym_auv.objects.obstacles import LineObstacle
 from gym_auv.objects.path import Path
 
 from gym_auv.utils.safetyFilter import SafetyFilter
+from gym_auv.utils.acadosSimSolver import export_cybership_II_ode_simulator
 
 def _odesolver45(f, y, h):
     """Calculate the next step of an IVP of a time-invariant ODE with a RHS
@@ -157,6 +158,9 @@ class Vessel():
         self._observe_interval = max(1, int(1/self.config["observe_frequency"]))
         self._virtual_environment = None
         self._use_safety_filter = False
+        self.safety_filter = None
+        #self._ode_integrator = export_cybership_II_ode_simulator(self.config["t_step_size"],self.config['model_type'])
+        
 
         # Calculating sensor partitioning
         last_isector = -1
@@ -247,6 +251,9 @@ class Vessel():
     @property
     def max_speed(self) -> float:
         """Returns the maximum speed of the AUV."""
+        if self.config['model_type'] == 'realistic':
+            return 0.57
+            
         return 2
 
     @property
@@ -308,33 +315,61 @@ class Vessel():
         """
         self._input = np.array([self._thrust_surge(action[0]), self._moment_steer(action[1])])
 
-        
         #Check if safety filter is activated
+
         if self._use_safety_filter:
-            print("old_input", self._input)
+            #Check if safety filter has crashed
+
+            if self.safety_filter.infeasible_solution and self._step_counter > 10:
+                #Logging
+                self.safety_filter.env.history['infeasible_solution'] = np.array([1])
+                
+                print('Crashed on step {}, creating new safety filter'.format(self._step_counter))
+                self.safety_filter = SafetyFilter(self.safety_filter.env, self.safety_filter.rank, self.config['model_type'])
+            
+            elif self.safety_filter.infeasible_solution:
+
+                print('Crashed on initialization, creating new safety filter')
+                self.safety_filter = SafetyFilter(self.safety_filter.env, self.safety_filter.rank, self.config['model_type'])
+
+
+
+            #Update obstacles with lidar data
+            if self.safety_filter.mode =="lidar" or self.safety_filter.mode == "lidar_and_moving_obstacles":
+                self.safety_filter.update_obstacles_from_lidar(self._last_sensor_dist_measurements, self._sensor_angles, self._state)
+
+            self.safety_filter.update(self._state, self._last_navi_state_dict)
             self._input = self.safety_filter.filter(self._input, self._state)
-            print("new_input", self._input)
 
         w, q = _odesolver45(self._state_dot, self._state, self.config["t_step_size"])
-        
+        #self._ode_integrator.set('x',self._state)
+        #self._ode_integrator.set('u',self._input)
+        #ode_status = self._ode_integrator.solve()
+        #if ode_status != 0:
+        #    raise Exception(f'acados returned status {ode_status}.')
+        #self._state = self._ode_integrator.get('x')
+        #self._state[2] = geom.princip(self._state[2])
+
         self._state = q
         self._state[2] = geom.princip(self._state[2])
-
-        #Update safety filter
-        if self._use_safety_filter:
-            self.safety_filter.update(self._state, self._nearby_obstacles, self._last_navi_state_dict)
 
         self._prev_states = np.vstack([self._prev_states,self._state])
         self._prev_inputs = np.vstack([self._prev_inputs,self._input])
 
         self._step_counter += 1
 
-    def activate_safety_filter(self, env):
+    def activate_safety_filter(self, env, rank):
         """
         Initializes and activates a safety filter to be used in the vessel step function. 
         """
-        self.safety_filter = SafetyFilter(env)
+        self.safety_filter_rank = rank
         self._use_safety_filter = True
+
+
+        if self.safety_filter is None:
+            self.safety_filter = SafetyFilter(env, rank, self.config['model_type'])
+        else:
+            self.safety_filter.reset(env)
 
 
     def perceive(self, obstacles:list):
@@ -523,21 +558,30 @@ class Vessel():
         tau = np.array([self._input[0], 0, self._input[1]])
 
         eta_dot = geom.Rzyx(0, 0, geom.princip(psi)).dot(nu)
-        nu_dot = const.M_inv.dot(
-            tau
 
-            ## Realistic:
-            # - const.D.dot(nu)
-            # - const.C(nu).dot(nu)
+        # Use realistic model type
+        if self.config['model_type'] == 'realistic':
+            nu_dot = const.M_inv.dot(
+                tau
 
-            ## Simplified
-            - const.N(nu).dot(nu)
-        )
+                - const.D(nu).dot(nu)
+                - const.C(nu).dot(nu)
+            )
+
+        # Use simplified model type
+        elif self.config['model_type'] == 'simplified':
+            nu_dot = const.M_inv.dot(
+                tau
+
+                - const.N(nu).dot(nu)
+            )
+
+
         state_dot = np.concatenate([eta_dot, nu_dot])
         return state_dot
 
     def _thrust_surge(self, surge):
-        surge = np.clip(surge, 0, 1)
+        surge = np.clip(surge, -1, 1)
         return surge*self.config['thrust_max_auv']
 
     def _moment_steer(self, steer):
