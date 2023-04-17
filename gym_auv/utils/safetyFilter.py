@@ -370,7 +370,7 @@ class SafetyFilter:
                               #Update obstacle parameters for close obstacles
                               if j in close_obs_idxs:
                                     self.p[3*p_idx:3*p_idx+2] = pred_obst_pos[j]
-                                    self.p[3*p_idx+2] = self.obstacles[j].width + 12.0
+                                    self.p[3*p_idx+2] = self.obstacles[j].width + 8.0
 
                                     #Predict future position
                                     index = int(np.floor(self.obstacles[j].waypoint_counter))

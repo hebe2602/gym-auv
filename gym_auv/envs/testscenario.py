@@ -481,6 +481,7 @@ class Random_static_500m(BaseEnvironment):
         safety_filter_rank = -1
         if hasattr(self.vessel, 'safety_filter_rank'):
             safety_filter_rank = self.vessel.safety_filter_rank
+            safety_filter = self.vessel.safety_filter
 
         self.vessel = Vessel(self.config, np.hstack([init_state, init_angle]), width=self.config["vessel_width"])
         prog = self.path.get_closest_arclength(self.vessel.position)
@@ -501,7 +502,7 @@ class Random_static_500m(BaseEnvironment):
             self.obstacles.append(obstacle)
 
         if safety_filter_rank != -1:
-            del self.vessel.safety_filter
+            self.vessel.safety_filter = safety_filter
             self.vessel.activate_safety_filter(self, safety_filter_rank)
         
         self._rewarder_class = SafetyColavRewarder

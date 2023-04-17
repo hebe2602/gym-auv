@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-def plot_stats(df, label = None, var = 'rewards', window_size = 100, n_timesteps = 2000000, xaxis = 'timesteps'):
+def plot_stats(df, label = None, var = 'rewards', window_size = 100, n_timesteps = 1000000, xaxis = 'timesteps'):
 
    #rewards = df[var].values
    #print('rewards: ', rewards, 'len: ', len(rewards))
@@ -19,8 +19,8 @@ def plot_stats(df, label = None, var = 'rewards', window_size = 100, n_timesteps
    plt.figure(1, figsize=(8, 6))
    if xaxis == 'timesteps':
       timesteps = np.arange(len(df[var])) * n_timesteps / len(df[var])
-      plt.plot(timesteps, smoothed_rewards,label = label) #label='Smoothed '+ var[:-1].capitalize() + ' ' + label)
-      plt.fill_between(timesteps, smoothed_rewards-smoothed_std, smoothed_rewards+smoothed_std, alpha=0.2) #, label='Smoothed Std Dev ' + label)
+      plt.plot(timesteps, smoothed_rewards) #,label = label) #label='Smoothed '+ var[:-1].capitalize() + ' ' + label)
+      #plt.fill_between(timesteps, smoothed_rewards-smoothed_std, smoothed_rewards+smoothed_std, alpha=0.2) #, label='Smoothed Std Dev ' + label)
       plt.xlabel('Timesteps',  fontsize=14)
 
    elif xaxis == 'episodes':
@@ -45,19 +45,22 @@ def plot_stats(df, label = None, var = 'rewards', window_size = 100, n_timesteps
 
 
 save_fig_path = os.path.join('/home/sveinjhu/Documents/Masteroppgave/logs/figures/RandomScenario1-v0/Plots')
+save_fig_path = os.path.join('/home/sveinjhu/Documents/Masteroppgave/logs/figures/Random_static_500m-v0/Plots')
 
-dir_list = ['SF_3_lidar', 'SF_3_lidar_and_obst', 'SF_3_no_lidar']
+dir_list = ['SF_1', 'No_SF_1']
 
 
-label_list = ['PSF with lidar', 'PSF with lidar and moving obstacles', 'PSF without lidar']
+#label_list = ['PPO + PSF (Lidar)', 'PPO + PSF (Lidar, Moving Obst)', 'PPO']
+label_list = ['PPO + PSF (Lidar)', 'PPO']
 var_list = ['rewards', 'cross_track_errors', 'progresses', 'timesteps', 'durations','collisions', ]
-var_index = 4
-window_size = 50
+#var_index = 4
+window_size = 100
 for var_index in range(6):
    for i in range(len(dir_list)):
-      path = os.path.join('/home/sveinjhu/Documents/Masteroppgave/logs/figures/RandomScenario1-v0', dir_list[i])
+      path = os.path.join('/home/sveinjhu/Documents/Masteroppgave/logs/figures/Random_static_500m-v0', dir_list[i])
       df = pd.read_csv(os.path.join(path, 'stats.csv'))
-      plot_stats(df, label = label_list[i], var = var_list[var_index], xaxis='episodes', window_size=window_size) #xaxis='episodes'
+
+      plot_stats(df, label = label_list[i], var = var_list[var_index], xaxis='timesteps', window_size=window_size) #xaxis='episodes'
 
    #plt.show()
    plt.savefig(os.path.join(save_fig_path, var_list[var_index]+'.png'))
@@ -65,7 +68,7 @@ for var_index in range(6):
 
 
 
-# # Create a sample plot with three lines
+# Create a sample plot with three lines
 # x = [1, 2, 3, 4, 5]
 # y1 = [2, 4, 6, 8, 10]
 # y2 = [1, 3, 5, 7, 9]
@@ -74,7 +77,7 @@ for var_index in range(6):
 # fig, ax = plt.subplots()
 # ax.plot(x, y1, label=label_list[0])
 # ax.plot(x, y2, label=label_list[1])
-
+# ax.plot(x, y2, label=label_list[2])
 
 # # Create a separate figure with only the legends
 # fig_legend, ax_legend = plt.subplots(figsize=(2, 0.5))

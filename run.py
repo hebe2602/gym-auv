@@ -647,7 +647,7 @@ def main(args):
 
         ### CALLBACKS ###
         # Things we want to do: calculate statistics, say 1000 times during training.
-        total_timesteps = 2000000 #10000000
+        total_timesteps = 1000000 #10000000
         save_stats_freq = total_timesteps // 100  # Save stats 1000 times during training (EveryNTimesteps)
         save_agent_freq = total_timesteps // 10   # Save the agent 100 times throughout training
         record_agent_freq = total_timesteps // 1  # Evaluate and record 10 times during training (EvalCallback)
@@ -758,16 +758,16 @@ def main(args):
                 #            recording_length, args.algo, args.pilot, envconfig_string,
                 #            ' --recurrent' if args.recurrent else ''
                 #        )
-                if self.num_timesteps % self.record_agent_freq == 0:
-                    agent_filepath = os.path.join(self.log_dir, str(self.num_timesteps) + '.pkl')
+                #if self.num_timesteps % self.record_agent_freq == 0:
+                    #agent_filepath = os.path.join(self.log_dir, str(self.num_timesteps) + '.pkl')
                     # cmd = 'python run.py enjoy {} --agent "{}" --video-dir "{}" --video-name "{}" --recording-length {} --algo {} --envconfig {}{}'.format(
                     #     args.env, agent_filepath, video_folder, args.env + '-' + str(self.num_timesteps),
                     #     recording_length, args.algo, envconfig_string,
                     #     ' --recurrent' if args.recurrent else ''
                     # )
-                    cmd = 'python run.py enjoy {} --agent "{}"'.format(
-                        args.env, agent_filepath)
-                    subprocess.Popen(cmd, shell=True)
+                    #cmd = 'python run.py enjoy {} --agent "{}"'.format(
+                        #args.env, agent_filepath)
+                    #subprocess.Popen(cmd, shell=True)
 
                 return True
 
@@ -953,7 +953,7 @@ def main(args):
                 run_test("ep0", reset=True, scenario=args.scenario, max_t_steps=5000)
 
         else:
-            safety_filter_comparison = True
+            safety_filter_comparison = False
             agents = ['10000.pkl', '50000.pkl', '100000.pkl', '500000.pkl']
             agent_path = args.agent[:-9]
 
