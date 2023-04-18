@@ -12,7 +12,7 @@ from gym_auv.objects.obstacles import LineObstacle
 from gym_auv.objects.path import Path
 
 from gym_auv.utils.safetyFilter import SafetyFilter
-from gym_auv.utils.acadosSimSolver import export_cybership_II_ode_simulator
+from gym_auv.objects.disturbances import disturbances
 
 def _odesolver45(f, y, h):
     """Calculate the next step of an IVP of a time-invariant ODE with a RHS
@@ -143,6 +143,8 @@ class Vessel():
         self.config = config
 
         # Initializing private attributes
+
+        # LIDAR SENSOR #
         self._width = width
         self._feasibility_width = width*self.config["feasibility_width_multiplier"]
         self._n_sectors = self.config["n_sectors"]
@@ -156,11 +158,19 @@ class Vessel():
         self._sensor_internal_indeces = []
         self._sensor_interval = max(1, int(1/self.config["sensor_frequency"]))
         self._observe_interval = max(1, int(1/self.config["observe_frequency"]))
+
+        # ENVIRONMENT #
         self._virtual_environment = None
+
+        # SAFETY FILTER #
         self._use_safety_filter = False
         self.safety_filter = None
-        #self._ode_integrator = export_cybership_II_ode_simulator(self.config["t_step_size"],self.config['model_type'])
-        
+
+        # DISTURBANCES #
+        self._use_disturbances = config['Disturbance_active']
+        self.disturbance = disturbances(config)
+        self.current_vector = np.zeros(3)
+        self.disturbance_forces = np.zeros(3)
 
         # Calculating sensor partitioning
         last_isector = -1
@@ -196,6 +206,7 @@ class Vessel():
             self._get_closeness = lambda x: 1 - np.clip(np.log(1 + x)/np.log(1 + self.config["sensor_range"]), 0, 1)
         else:
             self._get_closeness = lambda x: 1 - np.clip(x/self.config["sensor_range"], 0, 1)
+        
 
         # Initializing vessel to initial position
         self.reset(init_state)
@@ -313,6 +324,13 @@ class Vessel():
         ----------
         action : np.ndarray[thrust_input, torque_input]
         """
+        
+        # If disturbances activated, get current values and propagate for next iteration
+        if self._use_disturbances:
+            self.current_vector, self.disturbance_force = self.disturbance.Get()
+            self.disturbance.propagate_current()
+            self.disturbance.propagate_disturbance_forces()
+
         self._input = np.array([self._thrust_surge(action[0]), self._moment_steer(action[1])])
 
         #Check if safety filter is activated
@@ -331,8 +349,6 @@ class Vessel():
 
                 print('Crashed on initialization, creating new safety filter')
                 self.safety_filter = SafetyFilter(self.safety_filter.env, self.safety_filter.rank, self.config['model_type'])
-
-
 
             #Update obstacles with lidar data
             if self.safety_filter.mode =="lidar" or self.safety_filter.mode == "lidar_and_moving_obstacles":
@@ -557,13 +573,13 @@ class Vessel():
 
         tau = np.array([self._input[0], 0, self._input[1]])
 
-        eta_dot = geom.Rzyx(0, 0, geom.princip(psi)).dot(nu)
+        eta_dot = geom.Rzyx(0, 0, geom.princip(psi)).dot(nu) + self.current_vector
 
         # Use realistic model type
         if self.config['model_type'] == 'realistic':
             nu_dot = const.M_inv.dot(
                 tau
-
+                + self.disturbance_force
                 - const.D(nu).dot(nu)
                 - const.C(nu).dot(nu)
             )
@@ -572,7 +588,7 @@ class Vessel():
         elif self.config['model_type'] == 'simplified':
             nu_dot = const.M_inv.dot(
                 tau
-
+                + self.disturbance_force
                 - const.N(nu).dot(nu)
             )
 

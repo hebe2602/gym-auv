@@ -52,8 +52,23 @@ DEFAULT_CONFIG = {
 
     # ---- SAFETY FILTER ---- #
     "safety_filter": True,                              # Whether to use safety filter
-    "safety_filter_mode": 'lidar', # Which safety filter mode to use. Opts = {'obstacles', 'lidar', 'lidar_and_moving_obstacles'}
-    "SSH": True                                        # Disable graphics to start training with SSH
+    "safety_filter_mode": 'lidar',                    # Which safety filter mode to use. Opts = {'obstacles', 'lidar', 'lidar_and_moving_obstacles'}
+    "SSH": False,                                        # Disable graphics to start training with SSH
+
+    # ---- DISTURBANCE ---- #
+    'Disturbance_active': True,                       # {True, False} Activate or deactivate environmental disturbances
+    'max_current_velocity': 0.1,                      # Maximum velocity of water current
+    'max_current_velocity_w': 0.02,                   # Max value for white noise w that is integrated to generate brownian current velocity signal
+    'max_current_direction_w': 0.01,                  # Max value for white noise w that is integrated to generate brownian current direction signal
+    'max_ext_disturbance_Fu': 0.0,                    # Max value for external surge force disturbance signal
+    'max_ext_disturbance_Fv': 0.0,                    # Max value for external sway force disturbance signal
+    'max_ext_disturbance_Tr': 0.0,                    # Max value for external yaw moment disturbance signal
+    'max_ext_disturbance_Fu_w1': 0.0,                 # Max value for white noise w1 that is integrated to generate brownian surge force disturbance signal
+    'max_ext_disturbance_Fu_w2': 0.0,                 # Max value for w2 that generates white noise surge force disturbance signal
+    'max_ext_disturbance_Fv_w1': 0.0,                 # Max value for white noise w1 that is integrated to generate brownian sway force disturbance signal
+    'max_ext_disturbance_Fv_w2': 0.0,                 # Max value for w2 that generates white noise sway force disturbance signal
+    'max_ext_disturbance_Tr_w1': 0.0,                 # Max value for white noise w1 that is integrated to generate brownian yaw moment disturbance signal
+    'max_ext_disturbance_Tr_w2': 0.0,                 # Max value for w2 that generates white noise yaw moment disturbance signal
 }
 
 MOVING_CONFIG = DEFAULT_CONFIG.copy()
