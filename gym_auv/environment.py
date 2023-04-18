@@ -233,7 +233,7 @@ class BaseEnvironment(gym.Env, ABC):
         self._update()
 
         # Updating vessel state from its dynamics model
-        self.vessel.step(action)
+        self.vessel.step(action, self.t_step)
 
         # Getting observation vector
         obs = self.observe()

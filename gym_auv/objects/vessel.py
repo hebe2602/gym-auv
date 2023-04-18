@@ -12,7 +12,7 @@ from gym_auv.objects.obstacles import LineObstacle
 from gym_auv.objects.path import Path
 
 from gym_auv.utils.safetyFilter import SafetyFilter
-from gym_auv.objects.disturbances import disturbances
+from gym_auv.objects.disturbances import generate_disturbances
 
 def _odesolver45(f, y, h):
     """Calculate the next step of an IVP of a time-invariant ODE with a RHS
@@ -167,11 +167,13 @@ class Vessel():
         self.safety_filter = None
 
         # DISTURBANCES #
-        self._use_disturbances = config['Disturbance_active']
-        self.disturbance = disturbances(config)
-        self.current_vector = np.zeros(3)
-        self.disturbance_forces = np.zeros(3)
-
+        if config['Disturbance_active']:
+            self._current_velocities, self._disturbance_forces = generate_disturbances(config)
+        else:
+            self._current_velocities, self._disturbance_forces = np.zeros(3, config['max_timesteps'])
+        
+        self.current_vector = None
+        self.disturbance_force = None
         # Calculating sensor partitioning
         last_isector = -1
         tmp_sector_angle_sum = 0
@@ -316,7 +318,7 @@ class Vessel():
         self._nearby_obstacles = []
 
 
-    def step(self, action:list) -> None:
+    def step(self, action:list, t_step) -> None:
         """
         Simulates the vessel one step forward after applying the given action.
 
@@ -324,12 +326,10 @@ class Vessel():
         ----------
         action : np.ndarray[thrust_input, torque_input]
         """
-        
-        # If disturbances activated, get current values and propagate for next iteration
-        if self._use_disturbances:
-            self.current_vector, self.disturbance_force = self.disturbance.Get()
-            self.disturbance.propagate_current()
-            self.disturbance.propagate_disturbance_forces()
+
+        # Set disturbance values for current iterate
+        self.current_vector = self._current_velocities[:,t_step]
+        self.disturbance_force = self._disturbance_forces[:,t_step]
 
         self._input = np.array([self._thrust_surge(action[0]), self._moment_steer(action[1])])
 
