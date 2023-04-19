@@ -1,9 +1,32 @@
 import numpy as np
 
+
+# This file contains the code and functions for generating the randomized environmental disturbances that affect the ship. The disturbances consist
+# of a slowly varying ocean current modelled as a random walk process, and generalized surge force, sway force, and yaw moment disturbances modelled
+# as processes with a slow-varying random walk component and a white noise component  
+
+
+
+
+
 def random_from_interval(abs_max):
     rand = -abs_max + 2*abs_max*np.random.random()
     return rand
 
+
+# Parameters
+max_current_velocity = 0.1                      # Maximum velocity of water current
+max_current_velocity_w = 0.02                   # Max value for white noise w that is integrated to generate random walk current velocity signal
+max_current_direction_w = 0.01                  # Max value for white noise w that is integrated to generate random walk current direction signal
+max_ext_disturbance_Fu = 0.0                    # Max value for external surge force disturbance signal
+max_ext_disturbance_Fv = 0.0                    # Max value for external sway force disturbance signal
+max_ext_disturbance_Tr = 0.0                    # Max value for external yaw moment disturbance signal
+max_ext_disturbance_Fu_w1 = 0.0                 # Max value for white noise w1 that is integrated to generate random walk componenet for surge force disturbance signal
+max_ext_disturbance_Fu_w2 = 0.0                 # Max value for w2 that generates white noise component for surge force disturbance signal
+max_ext_disturbance_Fv_w1 = 0.0                 # Max value for white noise w1 that is integrated to generate random walk component for sway force disturbance signal
+max_ext_disturbance_Fv_w2 = 0.0                 # Max value for w2 that generates white noise component sway force disturbance signal
+max_ext_disturbance_Tr_w1 = 0.0                 # Max value for white noise w1 that is integrated to generate random walk component for yaw moment disturbance signal
+max_ext_disturbance_Tr_w2 = 0.0                 # Max value for w2 that generates white noise component for yaw moment disturbance signal
 
 def generate_disturbances(config:dict):
     """
@@ -18,21 +41,21 @@ def generate_disturbances(config:dict):
     a random walk component and a white noise component
     """
 
-    # Parameters (See __init__.py) for description of values
+    # Parameters
     N = config['max_timesteps']
     ts = config['t_step_size']
-    curr_vel_max = config['max_current_velocity']
-    curr_vel_max_w = config['max_current_velocity_w']
-    curr_angle_max_w = config['max_current_direction_w']
-    Fu_max = config['max_ext_disturbance_Fu']
-    Fu_max_w1 = config['max_ext_disturbance_Fu_w1']
-    Fu_max_w2 = config['max_ext_disturbance_Fu_w2']
-    Fv_max = config['max_ext_disturbance_Fv']
-    Fv_max_w1 = config['max_ext_disturbance_Fv_w1']
-    Fv_max_w2 = config['max_ext_disturbance_Fv_w2']
-    Tr_max = config['max_ext_disturbance_Tr']
-    Tr_max_w1 = config['max_ext_disturbance_Tr_w1']
-    Tr_max_w2 = config['max_ext_disturbance_Tr_w2']
+    curr_vel_max = max_current_velocity
+    curr_vel_max_w = max_current_velocity_w
+    curr_angle_max_w = max_current_direction_w
+    Fu_max = max_ext_disturbance_Fu
+    Fu_max_w1 = max_ext_disturbance_Fu_w1
+    Fu_max_w2 = max_ext_disturbance_Fu_w2
+    Fv_max = max_ext_disturbance_Fv
+    Fv_max_w1 = max_ext_disturbance_Fv_w1
+    Fv_max_w2 = max_ext_disturbance_Fv_w2
+    Tr_max = max_ext_disturbance_Tr
+    Tr_max_w1 = max_ext_disturbance_Tr_w1
+    Tr_max_w2 = max_ext_disturbance_Tr_w2
 
     # Initialize disturbance values
     curr_vel = np.zeros(N+1)

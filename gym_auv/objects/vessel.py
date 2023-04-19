@@ -167,7 +167,7 @@ class Vessel():
         self.safety_filter = None
 
         # DISTURBANCES #
-        if config['Disturbance_active']:
+        if config['disturbances']:
             self._current_velocities, self._disturbance_forces = generate_disturbances(config)
         else:
             self._current_velocities, self._disturbance_forces = np.zeros(3, config['max_timesteps'])
