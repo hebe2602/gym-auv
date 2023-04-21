@@ -15,18 +15,18 @@ def random_from_interval(abs_max):
 
 
 # Parameters
-max_current_velocity = 0.1                      # Maximum velocity of water current
+max_current_velocity = 0.09                      # Maximum velocity of water current
 max_current_velocity_w = 0.02                   # Max value for white noise w that is integrated to generate random walk current velocity signal
 max_current_direction_w = 0.01                  # Max value for white noise w that is integrated to generate random walk current direction signal
-max_ext_disturbance_Fu = 0.0                    # Max value for external surge force disturbance signal
-max_ext_disturbance_Fv = 0.0                    # Max value for external sway force disturbance signal
-max_ext_disturbance_Tr = 0.0                    # Max value for external yaw moment disturbance signal
-max_ext_disturbance_Fu_w1 = 0.0                 # Max value for white noise w1 that is integrated to generate random walk componenet for surge force disturbance signal
-max_ext_disturbance_Fu_w2 = 0.0                 # Max value for w2 that generates white noise component for surge force disturbance signal
-max_ext_disturbance_Fv_w1 = 0.0                 # Max value for white noise w1 that is integrated to generate random walk component for sway force disturbance signal
-max_ext_disturbance_Fv_w2 = 0.0                 # Max value for w2 that generates white noise component sway force disturbance signal
-max_ext_disturbance_Tr_w1 = 0.0                 # Max value for white noise w1 that is integrated to generate random walk component for yaw moment disturbance signal
-max_ext_disturbance_Tr_w2 = 0.0                 # Max value for w2 that generates white noise component for yaw moment disturbance signal
+max_ext_disturbance_Fu = 0.25                    # Max value for external surge force disturbance signal
+max_ext_disturbance_Fv = 0.25                    # Max value for external sway force disturbance signal
+max_ext_disturbance_Tr = 0.003                    # Max value for external yaw moment disturbance signal
+max_ext_disturbance_Fu_w1 = 0.025                 # Max value for white noise w1 that is integrated to generate random walk componenet for surge force disturbance signal
+max_ext_disturbance_Fu_w2 = 0.01                 # Max value for w2 that generates white noise component for surge force disturbance signal
+max_ext_disturbance_Fv_w1 = 0.025                 # Max value for white noise w1 that is integrated to generate random walk component for sway force disturbance signal
+max_ext_disturbance_Fv_w2 = 0.01                 # Max value for w2 that generates white noise component sway force disturbance signal
+max_ext_disturbance_Tr_w1 = 0.0003                 # Max value for white noise w1 that is integrated to generate random walk component for yaw moment disturbance signal
+max_ext_disturbance_Tr_w2 = 0.00003                 # Max value for w2 that generates white noise component for yaw moment disturbance signal
 
 def generate_disturbances(config:dict):
     """
