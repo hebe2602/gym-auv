@@ -13,6 +13,7 @@ from gym_auv.objects.path import Path
 
 from gym_auv.utils.safetyFilter import SafetyFilter
 from gym_auv.objects.disturbances import generate_disturbances
+from gym_auv.utils.disturbanceEstimator import disturbanceEstimator
 
 def _odesolver45(f, y, h):
     """Calculate the next step of an IVP of a time-invariant ODE with a RHS
@@ -170,7 +171,12 @@ class Vessel():
         if config['disturbances']:
             self._current_velocities, self._disturbance_forces = generate_disturbances(config)
         else:
-            self._current_velocities, self._disturbance_forces = np.zeros(3, config['max_timesteps'])
+            self._current_velocities, self._disturbance_forces = np.zeros((3, config['max_timesteps'] + 3)), np.zeros((3, config['max_timesteps'] + 3))
+        
+        # DISTURBANCE ESTIMATOR #
+        self._use_disturbance_estimator = config['disturbance_estimator']
+        if self._use_disturbance_estimator:
+            self.disturbance_estimator = disturbanceEstimator(config)
         
         self.current_vector = None
         self.disturbance_force = None
@@ -317,6 +323,14 @@ class Vessel():
         self._perceive_counter = 0
         self._nearby_obstacles = []
 
+        # Reset disturbance estimator
+        if self._use_disturbance_estimator:
+            self.disturbance_estimator.reset()
+
+        # Reset disturbances
+        if self.config['disturbances']:
+            self._current_velocities, self._disturbance_forces = generate_disturbances(self.config)
+
 
     def step(self, action:list, t_step) -> None:
         """
@@ -332,7 +346,12 @@ class Vessel():
         self.disturbance_force = self._disturbance_forces[:,t_step]
 
         self._input = np.array([self._thrust_surge(action[0]), self._moment_steer(action[1])])
-
+        
+        # Update disturbance estimate
+        if self._use_disturbance_estimator:
+            self.disturbance_estimator.update_T_d(self._state)
+            T_d = self.disturbance_estimator.get()
+        
         #Check if safety filter is activated
 
         if self._use_safety_filter:
@@ -349,22 +368,26 @@ class Vessel():
 
                 print('Crashed on initialization, creating new safety filter')
                 self.safety_filter = SafetyFilter(self.safety_filter.env, self.safety_filter.rank, self.config['model_type'])
+            
+            # Update safety filter disturbance parameters
+            if self._use_disturbance_estimator:
+                self.safety_filter.update_disturbance_estimates(T_d)
 
             #Update obstacles with lidar data
             if self.safety_filter.mode =="lidar" or self.safety_filter.mode == "lidar_and_moving_obstacles":
                 self.safety_filter.update_obstacles_from_lidar(self._last_sensor_dist_measurements, self._sensor_angles, self._state)
 
-            self.safety_filter.update(self._state, self._last_navi_state_dict)
+            self.safety_filter.update(self._state)
             self._input = self.safety_filter.filter(self._input, self._state)
 
-        w, q = _odesolver45(self._state_dot, self._state, self.config["t_step_size"])
-        #self._ode_integrator.set('x',self._state)
-        #self._ode_integrator.set('u',self._input)
-        #ode_status = self._ode_integrator.solve()
-        #if ode_status != 0:
-        #    raise Exception(f'acados returned status {ode_status}.')
-        #self._state = self._ode_integrator.get('x')
-        #self._state[2] = geom.princip(self._state[2])
+        # Simulate system
+        state_dot = lambda state : self._state_dot(state, self.current_vector, self.disturbance_force)
+        w, q = _odesolver45(state_dot, self._state, self.config["t_step_size"])
+
+        # Update disturbance estimator observer variable:
+        if self._use_disturbance_estimator:
+            state_dot_hat = self._state_dot(self._state, np.zeros(3), T_d)
+            self.disturbance_estimator.update_zeta(state_dot_hat)
 
         self._state = q
         self._state[2] = geom.princip(self._state[2])
@@ -567,19 +590,19 @@ class Vessel():
             'reached_goal': self._reached_goal
         }
 
-    def _state_dot(self, state):
+    def _state_dot(self, state, current_vector, disturbance_force):
         psi = state[2]
         nu = state[3:]
 
         tau = np.array([self._input[0], 0, self._input[1]])
 
-        eta_dot = geom.Rzyx(0, 0, geom.princip(psi)).dot(nu) + self.current_vector
+        eta_dot = geom.Rzyx(0, 0, geom.princip(psi)).dot(nu) + current_vector
 
         # Use realistic model type
         if self.config['model_type'] == 'realistic':
             nu_dot = const.M_inv.dot(
                 tau
-                + self.disturbance_force
+                + disturbance_force
                 - const.D(nu).dot(nu)
                 - const.C(nu).dot(nu)
             )
@@ -588,7 +611,7 @@ class Vessel():
         elif self.config['model_type'] == 'simplified':
             nu_dot = const.M_inv.dot(
                 tau
-                + self.disturbance_force
+                + disturbance_force
                 - const.N(nu).dot(nu)
             )
 

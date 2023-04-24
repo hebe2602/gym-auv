@@ -42,7 +42,7 @@ def generate_disturbances(config:dict):
     """
 
     # Parameters
-    N = config['max_timesteps']
+    N = config['max_timesteps'] + 3
     ts = config['t_step_size']
     curr_vel_max = max_current_velocity
     curr_vel_max_w = max_current_velocity_w

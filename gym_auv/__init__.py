@@ -59,7 +59,7 @@ DEFAULT_CONFIG = {
     'disturbances': True,                       # {True, False} Activate or deactivate environmental disturbances
 
     # ---- DISTURBANCE ESTIMATOR ---- #
-    'disturbance_estimator': False                    # {True, False} Activate or deactivate environmental disturbance estimator
+    'disturbance_estimator': True                    # {True, False} Activate or deactivate environmental disturbance estimator
 }
 
 MOVING_CONFIG = DEFAULT_CONFIG.copy()

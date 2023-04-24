@@ -1,5 +1,5 @@
 import numpy as np
-import constants as const
+import gym_auv.utils.constants as const
 
 
 # This file contains code for the disturbanceEstimator object, which is used to estimate the environmental disturbances affecting the ship
@@ -7,9 +7,9 @@ import constants as const
 
 
 # Parameters
-Gamma_1 = 1.0             # Adaptive gain for surge force disturbance estimate
-Gamma_2 = 1.0             # Adaptive gain for sway force disturbance estimate
-Gamma_3 = 1.0             # Adaptive gain for yaw moment disturbance estimate
+Gamma_1 = 0.1             # Adaptive gain for surge force disturbance estimate
+Gamma_2 = 0.1             # Adaptive gain for sway force disturbance estimate
+Gamma_3 = 0.08             # Adaptive gain for yaw moment disturbance estimate
 
 # Constants
 M_inv = const.M_inv       # Inverse of 3-DOF cybership II model mass matrix
@@ -39,23 +39,32 @@ class disturbanceEstimator():
         self.zeta = zeta_init
         self.T_d = T_d_init
 
-    def update(self, state, state_dot):
+    def update_T_d(self, state):
         """
         Updates disturbance estimate T_d and observer variable zeta
         """
-
         nu = state[3:]
-        nu_dot = state_dot[3:]
 
         # Update T_d
-        self.T_d = self.zeta + T*nu
+        self.T_d = self.zeta + T@nu
+
+    def update_zeta(self, state_dot):
+
+        nu_dot = state_dot[3:]
 
         # Update zeta
-        zeta_dot = -T*nu_dot * (self.zeta + T*nu)
-        self.zeta = self.zeta + self.ts * zeta_dot
+        zeta_dot = -T@nu_dot
+        self.zeta = self.zeta + self.ts*zeta_dot
     
     def get(self):
         """
         Returns current estimate of ship disturbance force
         """
         return self.T_d
+    
+    def reset(self):
+        """
+        Reset disturbance estimator variables
+        """
+        self.T_d = T_d_init
+        self.zeta = zeta_init

@@ -51,11 +51,16 @@ class SafetyFilter:
             #self.lidar_and_moving_obstacles = env.config["lidar_and_moving_obstacles"]
             self.mode = env.config["safety_filter_mode"]
             self.infeasible_solution = False
+            self.use_disturbance_estimator = env.config['disturbance_estimator']
 
 
             # set model
-            model = export_ship_PSF_model(model_type=model_type, max_detected_rays=self.max_detected_rays,
-                                           n_obstacles=self.n_obst, n_moving_obstacles=self.n_moving_obst,safety_filter_mode=self.mode)
+            model = export_ship_PSF_model(model_type=model_type, 
+                                          max_detected_rays=self.max_detected_rays,
+                                           n_obstacles=self.n_obst, 
+                                           n_moving_obstacles=self.n_moving_obst,
+                                           safety_filter_mode=self.mode,
+                                           use_disturbance_estimator = self.use_disturbance_estimator)
             ocp.model = model
 
             self.N = 50
@@ -183,6 +188,8 @@ class SafetyFilter:
                         p0[3*i:3*i+2] = self.obstacles[i].position
                         p0[3*i+2] = self.obstacles[i].radius
 
+            if self.use_disturbance_estimator:
+                  p0 = np.append(p0, np.zeros(3))
 
             self.p = p0
             ocp.parameter_values = self.p
@@ -287,8 +294,12 @@ class SafetyFilter:
                   obs_param_idx += 1
                   
             self.p[:3*self.max_detected_rays] = obs_param_updated
-            #print('Updated obstacle parameters: ', self.p[:-3])
 
+      def update_disturbance_estimates(self, T_d):
+            """
+            Updates disturbance estimate parameters in safety filter
+            """
+            self.p[-3:] = T_d
 
       def filter(self, u, state):
             """
@@ -333,20 +344,14 @@ class SafetyFilter:
             #print('Initial u: ',u, ', new u: ', new_u, ', diff: ', self.diff_u)
             return new_u
 
-      def update(self, state, nav_state):
+      def update(self, state):
             """
             Update the current state. 
             """
-            #print(self.ocp_solver.get(1,'x') - state)
+
             self.ocp_solver.set(0, "lbx", state)
             self.ocp_solver.set(0, "ubx", state)
 
-            #Terminal set parameters
-            # ctp_heading = nav_state['look_ahead_heading_error']
-            # ctp = nav_state['closest_point']
-            # ctp_x = ctp[0]
-            # ctp_y = ctp[1]
-            #self.p[-3:] = np.array([ctp_x,ctp_y,ctp_heading])
 
 
             if self.mode == "lidar":
@@ -388,8 +393,6 @@ class SafetyFilter:
       def reset(self, env):
             self.ocp_solver.reset()
             
-
-
             #Safe trajectory for rendering
             self.env = env
             self.env.vessel.safe_trajectory = np.ndarray((self.N+1,self.nx))
@@ -430,6 +433,11 @@ class SafetyFilter:
                   for i in range(self.n_moving_obst,self.n_obst):
                         p0[3*i:3*i+2] = self.obstacles[i].position
                         p0[3*i+2] = self.obstacles[i].radius
+           
+            # Check if disturbance estimator used:
+            if self.use_disturbance_estimator:
+                  p0 = np.append(p0, np.zeros(3))
+                  
             self.p = p0
 
             for i in range(self.N + 1):

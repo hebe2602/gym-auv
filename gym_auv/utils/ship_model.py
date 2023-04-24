@@ -82,7 +82,12 @@ def N(nu):
     return N
 
 
-def export_ship_PSF_model(model_type = 'simplified', max_detected_rays = 10, n_obstacles = 1, n_moving_obstacles = 0, safety_filter_mode=None) -> AcadosModel:
+def export_ship_PSF_model(model_type = 'simplified', 
+                          max_detected_rays = 10, 
+                          n_obstacles = 1, 
+                          n_moving_obstacles = 0, 
+                          safety_filter_mode=None,
+                          use_disturbance_estimator = False) -> AcadosModel:
     """Export AcadosModel for use in predictive safety filter"""
 
     model_name = 'ship_PSF'
@@ -161,39 +166,75 @@ def export_ship_PSF_model(model_type = 'simplified', max_detected_rays = 10, n_o
     )
     
     eta_impl = eta_dot - eta_expl
-    if model_type == 'realistic':
 
-        nu_impl = vertcat(
-            (m-X_udot)*u_dot + (-m_11*v - m_23*r)*r + (-X_u - X_uu*fabs(u) - X_uuu*u**2)*u - F_u,
-            (m - Y_vdot)*v_dot + (m*x_g - Y_rdot)*r_dot + m_11*u*r + (-Y_v - Y_vv*fabs(v) - Y_rv*fabs(r))*v + (-Y_r - Y_vr*fabs(v) - Y_rr*fabs(r))*r,# - 1.7244*F_r,
-            (m*x_g - N_vdot)*v_dot + (I_z - N_rdot)*r_dot - (-m_11*v - m_23*r)*u - m_11*u*v + (-N_v - N_vv*fabs(v) - N_rv*fabs(r))*v + (-N_r - N_vr*fabs(v) - N_rr*fabs(r))*r - F_r
-        )
+    if use_disturbance_estimator:
+        # If disturbance estimator is used
+
+        F_u_dist = SX.sym('F_u_dist') # Surge force disturbance estimate
+        F_v_dist = SX.sym('F_v_dist') # Sway force disturbance estimate
+        T_r_dist = SX.sym('T_r_dist') # Yaw moment disturbance estimate
+
+        if model_type == 'realistic':
+            # Use realistic model
+
+            nu_impl = vertcat(
+                (m-X_udot)*u_dot + (-m_11*v - m_23*r)*r + (-X_u - X_uu*fabs(u) - X_uuu*u**2)*u - F_u - F_u_dist,
+                (m - Y_vdot)*v_dot + (m*x_g - Y_rdot)*r_dot + m_11*u*r + (-Y_v - Y_vv*fabs(v) - Y_rv*fabs(r))*v + (-Y_r - Y_vr*fabs(v) - Y_rr*fabs(r))*r - F_v_dist,
+                (m*x_g - N_vdot)*v_dot + (I_z - N_rdot)*r_dot - (-m_11*v - m_23*r)*u - m_11*u*v + (-N_v - N_vv*fabs(v) - N_rv*fabs(r))*v + (-N_r - N_vr*fabs(v) - N_rr*fabs(r))*r - F_r - T_r_dist
+            )
+        
+            nu_expl = vertcat(
+                M_inv[0,0]*(-2.0*u - (-33.8*v + 11.748*r)*r + F_u),
+                M_inv[1,1]*(-7.0*v + 2.5425*r - 25.8*u*r -1.7244*F_r) + M_inv[1,2]*(2.5425*v - 1.422*r - (33.8*v - 11.748*r)*u +25.8*u*v + F_r),
+                M_inv[2,1]*(-7.0*v + 2.5425*r - 25.8*u*r -1.7244*F_r) + M_inv[2,2]*(2.5425*v - 1.422*r - (33.8*v - 11.748*r)*u +25.8*u*v + F_r)
+            )
+
+        elif model_type == 'simplified':
+            # Use simplified model
+
+            nu_impl = vertcat(
+                (m-X_udot)*u_dot + (-33.8*v + 11.748*r)*r + 2.0*u - F_u - F_u_dist,
+                (m - Y_vdot)*v_dot + (m*x_g - Y_rdot)*r_dot + 7.0*v + (m*u + 0.1)*r - F_v_dist,
+                (m*x_g - N_vdot)*v_dot + (I_z - N_rdot)*r_dot + 0.1*v + (m*x_g*u + 0.5)*r - F_r - T_r_dist
+            )
+            nu_expl = vertcat(
+                M_inv[0,0]*(X_u*u + F_u),
+                M_inv[1,1]*(Y_v*v - (m*u - Y_r)*r) + M_inv[1,2]*(N_v*v - (m*x_g*u-N_r)*r + F_r),
+                M_inv[2,1]*(Y_v*v - (m*u - Y_r)*r) + M_inv[2,2]*(N_v*v - (m*x_g*u-N_r)*r + F_r)
+            )
     
-        nu_expl = vertcat(
-            M_inv[0,0]*(-2.0*u - (-33.8*v + 11.748*r)*r + F_u),
-            M_inv[1,1]*(-7.0*v + 2.5425*r - 25.8*u*r -1.7244*F_r) + M_inv[1,2]*(2.5425*v - 1.422*r - (33.8*v - 11.748*r)*u +25.8*u*v + F_r),
-            M_inv[2,1]*(-7.0*v + 2.5425*r - 25.8*u*r -1.7244*F_r) + M_inv[2,2]*(2.5425*v - 1.422*r - (33.8*v - 11.748*r)*u +25.8*u*v + F_r)
-        )
+    else:
+        # No disturbance estimator used
 
-    elif model_type == 'simplified':
+        if model_type == 'realistic':
+            # Use realistic model
 
-        nu_impl = vertcat(
-            (m-X_udot)*u_dot + (-33.8*v + 11.748*r)*r + 2.0*u - F_u,
-            (m - Y_vdot)*v_dot + (m*x_g - Y_rdot)*r_dot + 7.0*v + (m*u + 0.1)*r,
-            (m*x_g - N_vdot)*v_dot + (I_z - N_rdot)*r_dot + 0.1*v + (m*x_g*u + 0.5)*r - F_r
-        )
-        nu_expl = vertcat(
-            M_inv[0,0]*(X_u*u + F_u),
-            M_inv[1,1]*(Y_v*v - (m*u - Y_r)*r) + M_inv[1,2]*(N_v*v - (m*x_g*u-N_r)*r + F_r),
-            M_inv[2,1]*(Y_v*v - (m*u - Y_r)*r) + M_inv[2,2]*(N_v*v - (m*x_g*u-N_r)*r + F_r)
-        )
+            nu_impl = vertcat(
+                (m-X_udot)*u_dot + (-m_11*v - m_23*r)*r + (-X_u - X_uu*fabs(u) - X_uuu*u**2)*u - F_u,
+                (m - Y_vdot)*v_dot + (m*x_g - Y_rdot)*r_dot + m_11*u*r + (-Y_v - Y_vv*fabs(v) - Y_rv*fabs(r))*v + (-Y_r - Y_vr*fabs(v) - Y_rr*fabs(r))*r,
+                (m*x_g - N_vdot)*v_dot + (I_z - N_rdot)*r_dot - (-m_11*v - m_23*r)*u - m_11*u*v + (-N_v - N_vv*fabs(v) - N_rv*fabs(r))*v + (-N_r - N_vr*fabs(v) - N_rr*fabs(r))*r - F_r
+            )
+        
+            nu_expl = vertcat(
+                M_inv[0,0]*(-2.0*u - (-33.8*v + 11.748*r)*r + F_u),
+                M_inv[1,1]*(-7.0*v + 2.5425*r - 25.8*u*r -1.7244*F_r) + M_inv[1,2]*(2.5425*v - 1.422*r - (33.8*v - 11.748*r)*u +25.8*u*v + F_r),
+                M_inv[2,1]*(-7.0*v + 2.5425*r - 25.8*u*r -1.7244*F_r) + M_inv[2,2]*(2.5425*v - 1.422*r - (33.8*v - 11.748*r)*u +25.8*u*v + F_r)
+            )
+
+        elif model_type == 'simplified':
+            # Use simplified model
+
+            nu_impl = vertcat(
+                (m-X_udot)*u_dot + (-33.8*v + 11.748*r)*r + 2.0*u - F_u,
+                (m - Y_vdot)*v_dot + (m*x_g - Y_rdot)*r_dot + 7.0*v + (m*u + 0.1)*r,
+                (m*x_g - N_vdot)*v_dot + (I_z - N_rdot)*r_dot + 0.1*v + (m*x_g*u + 0.5)*r - F_r
+            )
+            nu_expl = vertcat(
+                M_inv[0,0]*(X_u*u + F_u),
+                M_inv[1,1]*(Y_v*v - (m*u - Y_r)*r) + M_inv[1,2]*(N_v*v - (m*x_g*u-N_r)*r + F_r),
+                M_inv[2,1]*(Y_v*v - (m*u - Y_r)*r) + M_inv[2,2]*(N_v*v - (m*x_g*u-N_r)*r + F_r)
+            )
     
-#    N = np.array([
-#         [2.0, 0, 0],
-#         [0, 7.0, m*u + 0.1],
-#         [0, 0.1, m*x_g*u + 0.5]
-#     ])  
-
 
     eta_expl[2] = princip(eta_expl[2])
     f_impl = vertcat(eta_impl,nu_impl)
@@ -237,7 +278,11 @@ def export_ship_PSF_model(model_type = 'simplified', max_detected_rays = 10, n_o
     model.x = state
     model.xdot = state_dot
     model.u = F
-    model.p = state_obs
+    
+    if use_disturbance_estimator:
+        model.p = vertcat(state_obs, F_u_dist, F_v_dist, T_r_dist)
+    else:
+        model.p = state_obs
     model.con_h_expr = con_h_expr
     model.con_h_expr_e = vertcat(con_h_expr_e, terminal_set_expr_nu)
     model.name = model_name
