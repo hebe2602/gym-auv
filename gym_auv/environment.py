@@ -46,12 +46,17 @@ class BaseEnvironment(gym.Env, ABC):
         self.render_mode = render_mode
         self.verbose = verbose
         self.config = env_config
+
+        # Include disturbance estimator in navigation features
+        if self.config['disturbance_estimator']:
+            Vessel.NAVIGATION_FEATURES =['surge_velocity','sway_velocity','yaw_rate','look_ahead_heading_error',
+                                        'heading_error','cross_track_error', 'Fu','Fv','Tr']
         
         # Setting dimension of observation vector
         self._n_sensors = self.config["n_sensors_per_sector"] * self.config["n_sectors"]
         self.n_navigation_obs = len(Vessel.NAVIGATION_FEATURES)
         self.n_perception_obs = self._n_sensors  # *self.config["n_sectors"]
-        self.n_observations = len(Vessel.NAVIGATION_FEATURES) + self.config["n_sectors"]
+        self.n_observations = len(Vessel.NAVIGATION_FEATURES) + self.config["n_sectors"] 
 
         self.episode = 0
         self.total_t_steps = 0

@@ -124,6 +124,8 @@ class Vessel():
         'cross_track_error'
     ]
 
+
+
     def __init__(self, config:dict, init_state:np.ndarray, width:float=4) -> None:
         """
         Initializes and resets the vessel.
@@ -134,7 +136,7 @@ class Vessel():
             Dictionary containing the configuration parameters for
             the vessel
         init_state : np.ndarray
-            The initial attitude of the veHssel [x, y, psi], where
+            The initial attitude of the vessel [x, y, psi], where
             psi is the initial heading of the AUV.
         width : float
             The distance from the center of the AUV to its edge
@@ -299,7 +301,7 @@ class Vessel():
         Parameters
         ----------
         init_state : np.ndarray
-            The initial attitude of the veHssel [x, y, psi], where
+            The initial attitude of the vessel [x, y, psi], where
             psi is the initial heading of the AUV.
         """
         init_speed = [0, 0, 0]
@@ -573,7 +575,22 @@ class Vessel():
             'target_arclength': target_arclength,
             'goal_distance': goal_distance
         }
+
+        if self._use_disturbance_estimator:
+            T_d = self.disturbance_estimator.get()
+            self._last_navi_state_dict['Fu'] = T_d[0]
+            self._last_navi_state_dict['Fv'] = T_d[1]
+            self._last_navi_state_dict['Tr'] = T_d[2]
+
+            
+            
+
         navigation_states = np.array([self._last_navi_state_dict[state] for state in Vessel.NAVIGATION_FEATURES])
+
+        
+
+            
+
 
         return navigation_states[np.newaxis, :]
 
