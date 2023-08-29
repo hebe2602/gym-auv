@@ -84,37 +84,6 @@ class TestScenario_3_obstacles(BaseEnvironment):
         self._rewarder_class = SafetyColavRewarder
 
 
-# class TestScenario1(BaseEnvironment):
-#     def _generate(self):
-#         self.n_obstacles = 5
-#         self.path = Path([[0, 200], [0, 0]])
-
-#         init_state = self.path(0)
-#         init_angle = self.path.get_direction(0)
-
-#         safety_filter_rank = -1
-#         if hasattr(self.vessel, 'safety_filter_rank'):
-#             safety_filter_rank = self.vessel.safety_filter_rank
-
-#         self.vessel = Vessel(self.config, np.hstack([init_state, init_angle]))
-#         prog = self.path.get_closest_arclength(self.vessel.position)
-#         self.path_prog_hist = np.array([prog])
-#         self.max_path_prog = prog
-
-#         ##self.obstacles = [] # Thomas bugfix maybe? If _generate is called many times, self.obstacles may become huge.
-
-#         obst_arclength = 30
-#         for o in range(self.n_obstacles):
-#             obst_radius = 5# 10 + 10*o**1.5
-#             obst_arclength += (o+1)*30  #obst_radius*2 + 30
-#             obst_position = self.path(obst_arclength)
-#             self.obstacles.append(CircularObstacle(obst_position, obst_radius))
-    
-#         if safety_filter_rank != -1:
-#                 self.vessel.activate_safety_filter(self, safety_filter_rank)
-        
-#         self._rewarder_class = SafetyColavRewarder
-
 class TestScenario1(BaseEnvironment):
     def _generate(self):
         self.n_obstacles = 2

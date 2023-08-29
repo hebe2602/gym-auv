@@ -3,6 +3,7 @@ SB3/
 env/*
 c_generated_code/*
 acados_ocp/*
+!acados_ocp/.gitkeep
 *.png
 *.pdf
 *.pyc

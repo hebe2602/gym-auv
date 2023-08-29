@@ -53,13 +53,15 @@ DEFAULT_CONFIG = {
     # ---- SAFETY FILTER ---- #
     "safety_filter": True,                              # Whether to use safety filter
     "safety_filter_mode": 'lidar',                    # Which safety filter mode to use. Opts = {'obstacles', 'lidar', 'lidar_and_moving_obstacles'}
+    
+    # ---- SSH ---- #
     "SSH": False,                                        # Disable graphics to start training with SSH
 
     # ---- DISTURBANCES ---- #
-    'disturbances': True,                       # {True, False} Activate or deactivate environmental disturbances
+    'disturbances': False,                       # {True, False} Activate or deactivate environmental disturbances
 
     # ---- DISTURBANCE ESTIMATOR ---- #
-    'disturbance_estimator': True                    # {True, False} Activate or deactivate environmental disturbance estimator
+    'disturbance_estimator': False                    # {True, False} Activate or deactivate environmental disturbance estimator
 }
 
 MOVING_CONFIG = DEFAULT_CONFIG.copy()

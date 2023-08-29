@@ -12,8 +12,8 @@ import shapely.geometry, shapely.errors
 import os 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-vessel_speed_vals = np.loadtxt('resources/speed_vals3.txt')
-vessel_speed_density = np.loadtxt('resources/speed_density3.txt')
+vessel_speed_vals = np.loadtxt('resources/speed_vals.txt')
+vessel_speed_density = np.loadtxt('resources/speed_density.txt')
 
 class MovingObstacles(BaseEnvironment):
 
