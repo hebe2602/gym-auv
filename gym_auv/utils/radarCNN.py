@@ -118,7 +118,12 @@ class PerceptionNavigationExtractor(BaseFeaturesExtractor):
         total_concat_size = 0
         # We need to know size of the output of this extractor,
         # so go over all the spaces and compute output feature sizes
+        print("space: ", observation_space)
+       
         for key, subspace in observation_space.spaces.items():
+            print("Key, ", key)
+            print("subspace: ", subspace)
+            print("in:channel: ,", subspace.shape[0])
             if key == "perception":
                 # Pass sensor readings through CNN
                 extractors[key] = RadarCNN(subspace, sensor_dim=sensor_dim, features_dim=features_dim, kernel_overlap=kernel_overlap)
@@ -169,19 +174,20 @@ if __name__ == '__main__':
 
     ## Load existing convnet
     def load_net():
-        from . import gym_auv
+        #from . import gym_auv #orginal 
+        import gym_auv #forsøk for å få kjørt 
         algo = PPO
         #path = "radarCNN_example_Network.pkl"
-        path = "../../radarCNN_example_Network150000.pkl"
+        path = "../../radarCNN_example_Network150000.pkl" #funker ikke pga denne 
         #path = "PPO_MlpPolicy_trained.pkl"
         #model = th.load(path)  # RunTimeError: : [enforce fail at ..\caffe2\serialize\inline_container.cc:114] . file in archive is not in a subdirectory: data
         #model = MlpPolicy.load(path)
         model = algo.load(path)
 
 
-    load_net()
+    #load_net() #Comment out this and line 185 to get visualization of RadarCNN
     print("loaded net")
-    exit()
+    #exit()
     ## Initialize convolutional layers (circular padding in all layers or just the first?)
     # First layer retains spatial structure,
     # includes circular padding to maintain the continuous radial structure of the RADAR,

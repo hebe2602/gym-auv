@@ -31,7 +31,10 @@ import matplotlib.pyplot as plt
 #from gym_auv.utils.radarCNN import LidarCNN_pretrained, PerceptionNavigationExtractor
 
 ### THOMAS
-from gym_auv.utils.radarCNN import RadarCNN, PerceptionNavigationExtractor
+#from gym_auv.utils.radarCNN import RadarCNN, PerceptionNavigationExtractor
+
+### HENRIK 
+from gym_auv.utils.radarContrastive import ContrastiveNN_pretrained, PerceptionNavigationExtractor
 
 
 

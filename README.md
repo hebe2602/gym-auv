@@ -36,6 +36,17 @@ pip install -e <acados_root>/interfaces/acados_template
 export LD_LIBRARY_PATH="<absolute_acados_root>/lib"
 export ACADOS_SOURCE_DIR="<absolute_acados_root>"
 ```
+### For MacOS
+
+```
+export DYLD_LIBRARY_PATH="<absolute_acados_root>/lib:$DYLD_LIBRARY_PATH" 
+
+MÅ GJØRES HVER GANG MAN SETTER OPP CONDA ENV PÅ NYTT
+export LD_LIBRARY_PATH="/Users/henrikstoklandberg/Documents/NTNU/gym-auv/gym-auv-safety-filter/acados/lib"
+export ACADOS_SOURCE_DIR="/Users/henrikstoklandberg/Documents/NTNU/gym-auv/gym-auv-safety-filter/acados"
+export DYLD_LIBRARY_PATH="/Users/henrikstoklandberg/Documents/NTNU/gym-auv/gym-auv-safety-filter/acados/lib:$DYLD_LIBRARY_PATH"
+```
+
 
 #### Misc fixes:
 - Updated SB3 from 1.1.0 -> 1.8.0: Change ```run.py (line 451)```: ```agent = PPO("MlpPolicy", ...``` to ```agent = PPO("MultiInputPolicy", ...```
