@@ -74,9 +74,9 @@ def make_mp_env(env_id, rank, envconfig, seed=0, pilot=None):
         env = create_env(env_id, envconfig, pilot=pilot)
         env.seed(seed + rank)
 
-        if envconfig['safety_filter']:
+        #if envconfig['safety_filter']:
             #activate safety filter with rank
-            env.vessel.activate_safety_filter(env, rank)
+            #env.vessel.activate_safety_filter(env, rank)  
 
         return env
     set_random_seed(seed)
@@ -165,9 +165,9 @@ def play_scenario(env, recorded_env, args, agent=None):
 
     env.reset()
 
-    if env.config['safety_filter']:
+    #if env.config['safety_filter']:
         #activate safety filter
-        env.vessel.activate_safety_filter(env, 0)
+        #env.vessel.activate_safety_filter(env, 0)
     try:
         while True:
             t = time()
@@ -338,9 +338,9 @@ def main(args):
         )
         obs = recorded_env.reset()
 
-        if envconfig['safety_filter']:
+        #if envconfig['safety_filter']:
             #activate safety filter
-            env.vessel.activate_safety_filter(env, 0)
+            # env.vessel.activate_safety_filter(env, 0)
 
         state = None
         t_steps = 0
@@ -650,7 +650,7 @@ def main(args):
 
         ### CALLBACKS ###
         # Things we want to do: calculate statistics, say 1000 times during training.
-        total_timesteps = 1000000 #10000000
+        total_timesteps = 3000000 #10000000
         save_stats_freq = total_timesteps // 100  # Save stats 1000 times during training (EveryNTimesteps)
         save_agent_freq = total_timesteps // 10   # Save the agent 100 times throughout training
         record_agent_freq = total_timesteps // 1  # Evaluate and record 10 times during training (EvalCallback)
@@ -835,8 +835,11 @@ def main(args):
             agent = model.load(args.agent)
 
         def create_test_env(video_name_prefix, envconfig=envconfig):
+            fixed_seed = 420  # Fixed seed value
             print('Creating test environment: ' + env_id)
             env = create_env(env_id, envconfig, test_mode=True, render_mode=args.render if args.video else None, pilot=args.pilot)
+            # Set the seed for the environment
+            env.seed(fixed_seed)
             vec_env = DummyVecEnv([lambda: env])
             #vec_env = VecFrameStack(_vec_env, n_stack=3, channels_order='first')
             if args.video:
@@ -846,21 +849,25 @@ def main(args):
             )
             active_env = recorded_env if args.video else vec_env
 
-            if envconfig['safety_filter']:
+            #if envconfig['safety_filter']:
                 #activate safety filter
-                env.vessel.activate_safety_filter(env, 0)
+                #env.vessel.activate_safety_filter(env, 0)
 
             return env, active_env
 
         failed_tests = []
         def run_test(id, reset=True, report_dir=figure_folder, scenario=None, max_t_steps=None, env=None, active_env=None):
             nonlocal failed_tests
-
+            fixed_seed = 420  # Example fixed seed value
             if env is None or active_env is None:
                 env, active_env = create_test_env(video_name_prefix=args.env + '_'  + id)
-                if envconfig['safety_filter']:
+
+                 # Set the fixed seed for the environment and random generators
+                env.seed(fixed_seed)
+                set_random_seed(fixed_seed, using_cuda=torch.cuda.is_available())
+                #if envconfig['safety_filter']:
                     #activate safety filter
-                    env.vessel.activate_safety_filter(env, 0)
+                    #env.vessel.activate_safety_filter(env, 0)
 
             if scenario is not None:
                 obs = active_env.reset()
@@ -978,7 +985,7 @@ def main(args):
                 for episode in range(args.episodes):
                     #if episode % 2 == 0:
                     
-                    envconfig['safety_filter'] = True
+                    #envconfig['safety_filter'] = True
                     agent = model.load(agent_path + agents[idx])
                     colorval = colors[idx]
                     

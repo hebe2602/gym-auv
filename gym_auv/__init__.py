@@ -51,7 +51,7 @@ DEFAULT_CONFIG = {
     "autocamera3d": True,                            # Whether to let the camera automatically rotate during 3d rendering
 
     # ---- SAFETY FILTER ---- #
-    "safety_filter": True,                              # Whether to use safety filter
+    "safety_filter": False,                              # Whether to use safety filter
     "safety_filter_mode": 'lidar',                    # Which safety filter mode to use. Opts = {'obstacles', 'lidar', 'lidar_and_moving_obstacles'}
     
     # ---- SSH ---- #
@@ -187,6 +187,11 @@ SCENARIOS = {
     },
     'SafetyTestScenario-v0': {
         'entry_point': 'gym_auv.envs:SafetyTestScenario',
+        'config': MOVING_CONFIG
+    },
+    ######HENRIK TEST ENV
+    'MovingObstaclesNoRulesTest-v0': {
+        'entry_point': 'gym_auv.envs:MovingObstaclesNoRulesTest',
         'config': MOVING_CONFIG
     },
 }
