@@ -9,7 +9,8 @@ from gym_auv.environment import BaseEnvironment, BaseEnvironmentFixedSeed
 from gym_auv.objects.rewarder import ColregRewarder, ColavRewarder, ColavRewarder2, PathRewarder, SafetyColavRewarder
 import shapely.geometry, shapely.errors
 
-import os 
+import os
+SEED = 2
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 vessel_speed_vals = np.loadtxt('resources/speed_vals.txt')
@@ -82,7 +83,7 @@ class MovingObstaclesConsitentSeed(BaseEnvironmentFixedSeed):
             self._n_static_obst : Number of static obstacles
             self._rewarder_class : Rewarder used, e.g. PathRewarder, ColregRewarder
         """
-        super().__init__(*args,fixed_seed=420, **kwargs)
+        super().__init__(*args,fixed_seed=SEED, **kwargs)
 
     def _generate(self):
         # Initializing path
@@ -153,7 +154,7 @@ class MovingObstaclesNoRulesTest(MovingObstaclesConsitentSeed):
         self._n_moving_obst = 17
         self._n_static_obst = 11
         self._rewarder_class = PathRewarder  # ColavRewarder2
-        self.rng = np.random.RandomState(420)  # Fixed seed
+        self.rng = np.random.RandomState(SEED)  # Fixed seed
         super().__init__(*args, **kwargs)
 
 

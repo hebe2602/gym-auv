@@ -44,24 +44,28 @@ def plot_multiple_stats(df_list, label_list, var_list, var_labels_list, xaxis='e
 
             plt.ylabel('Average Episode ' + ylabel_var.capitalize(), fontsize=14)
         
-        plt.savefig(f'/home/eirikrb/Desktop/gym-auv-cnn/training_reports/plots/{var}.pdf', bbox_inches='tight')
-        plt.savefig(f'/Users/henrikstoklandberg/Documents/NTNU/gym-auv/plots/{var}.pdf', bbox_inches='tight')
+        #plt.savefig(f'/home/eirikrb/Desktop/gym-auv-cnn/training_reports/plots/{var}.pdf', bbox_inches='tight')
+        plt.savefig(f'/Users/henrikstoklandberg/Documents/NTNU/gym-auv/plots/3conv_training/{var}.pdf', bbox_inches='tight')
         plt.clf()
         plt.cla()
 
 if __name__ == '__main__':
     # Add the dataframes to the list with the associated model configuration names
     #filenames = ['shallow_locked_stats', 'shallow_locked_beta_0.5_stats', 'shallow_locked_beta_1.5_stats', 'shallow_locked_beta_3.0_stats']#,'shallow_unlocked_stats', 'deep_locked_stats', 'deep_unlocked_stats']
-    filenames = ['baseline_stats', 'shallow_locked_stats','shallow_unlocked_stats', 'deep_locked_stats', 'deep_unlocked_stats']
-    df_list = [pd.read_csv(f'/home/eirikrb/Desktop/gym-auv-cnn/training_reports/data/{f}.csv') for f in filenames]
+    #filenames = ['baseline_stats', 'shallow_locked_stats','shallow_unlocked_stats', 'deep_locked_stats', 'deep_unlocked_stats']
+    filenames = ['3conv_baseline_stats', '3conv_locked_stats','3conv_unlocked_stats']
+    #df_list = [pd.read_csv(f'/home/eirikrb/Desktop/gym-auv-cnn/training_reports/data/{f}.csv') for f in filenames]
+    df_list = [pd.read_csv(f'/Users/henrikstoklandberg/Documents/NTNU/gym-auv/stats/{f}.csv') for f in filenames]
+    
     #label_list = ['Shallow locked beta 1', 'Shallow locked beta 0.5', 'Shallow locked beta 1.5', 'Shallow locked beta 3.0']#, 'Shallow unlocked', 'Deep locked', 'Deep unlocked']
-    label_list = ['Baseline', 'Shallow locked', 'Shallow unlocked', 'Deep locked', 'Deep unlocked']
+    #label_list = ['Baseline', 'Shallow locked', 'Shallow unlocked', 'Deep locked', 'Deep unlocked']
+    label_list = ['3conv random', '3conv locked', '3conv unlocked']
     # Variables to plot
     var_list = ['rewards', 'progresses', 'cross_track_errors', 'timesteps', 'durations', 'collisions', 'goals_reached']
     var_labels_list = ['Reward', 'Progress', 'Cross track error', 'Timesteps', 'Duration', 'Collisions', 'Goals reached']
     
     window_size = 150 # set to same as sigma in gaussian_filter1d
-    n_timesteps = 1000000 # should be same as in run.py
+    n_timesteps = 3000000 # should be same as in run.py
 
     # Note: When plotting multiple models on top of each other "episodes" makes them more comparable as every entry in the dataframe is an episode
     plot_multiple_stats(df_list=df_list,
@@ -70,5 +74,5 @@ if __name__ == '__main__':
                         var_labels_list=var_labels_list,
                         window_size=window_size, 
                         n_timesteps=n_timesteps, 
-                        xaxis='episodes')
+                        xaxis='timesteps')
     

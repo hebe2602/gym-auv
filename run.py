@@ -36,6 +36,7 @@ import matplotlib.pyplot as plt
 ### HENRIK 
 from gym_auv.utils.radarContrastive import ContrastiveNN_pretrained, PerceptionNavigationExtractor
 
+SEED = 2
 
 
 speedups.enable()
@@ -59,10 +60,12 @@ def create_env(env_id, envconfig, test_mode=False, render_mode='2d', pilot=None,
         env = gym.make(env_id, env_config=envconfig, test_mode=test_mode, render_mode=render_mode, pilot=pilot, verbose=verbose)
     else:
         env = gym.make(env_id, env_config=envconfig, test_mode=test_mode, render_mode=render_mode, verbose=verbose)
+    env.seed(SEED)
     return env
 
 
-def make_mp_env(env_id, rank, envconfig, seed=0, pilot=None):
+#def make_mp_env(env_id, rank, envconfig, seed=0, pilot=None): #før seed fix
+def make_mp_env(env_id, rank, envconfig, seed=SEED, pilot=None):  
     """
     Utility function for multiprocessed env.
     :param env_id: (str) the environment ID
@@ -276,7 +279,10 @@ def play_scenario(env, recorded_env, args, agent=None):
     except KeyboardInterrupt:
         pass
 
+
+
 def main(args):
+    set_random_seed(SEED)
     envconfig_string = args.envconfig
     custom_envconfig = _preprocess_custom_envconfig(args.envconfig) if args.envconfig is not None else {}
     env_id = 'gym_auv:' + args.env
@@ -316,6 +322,7 @@ def main(args):
 
         play_scenario(env, recorded_env, args, agent=agent)
         recorded_env.env.close()
+        
 
     elif (args.mode == 'enjoy'):
         agent = model.load(args.agent)
@@ -835,7 +842,7 @@ def main(args):
             agent = model.load(args.agent)
 
         def create_test_env(video_name_prefix, envconfig=envconfig):
-            fixed_seed = 420  # Fixed seed value
+            fixed_seed = SEED  # Fixed seed value
             print('Creating test environment: ' + env_id)
             env = create_env(env_id, envconfig, test_mode=True, render_mode=args.render if args.video else None, pilot=args.pilot)
             # Set the seed for the environment
@@ -858,7 +865,7 @@ def main(args):
         failed_tests = []
         def run_test(id, reset=True, report_dir=figure_folder, scenario=None, max_t_steps=None, env=None, active_env=None):
             nonlocal failed_tests
-            fixed_seed = 420  # Example fixed seed value
+            fixed_seed = SEED  # Example fixed seed value
             if env is None or active_env is None:
                 env, active_env = create_test_env(video_name_prefix=args.env + '_'  + id)
 
@@ -932,6 +939,7 @@ def main(args):
 
             return copy.deepcopy(env.last_episode)
 
+        set_random_seed(SEED)
         print('Testing scenario "{}" for {} episodes.\n '.format(args.env, args.episodes))
         report_msg_header = '{:<20}{:<20}{:<20}{:<20}{:<20}{:<20}{:<20}'.format('Episode', 'Timesteps', 'Cum. Reward', 'Progress', 'Collisions', 'CT-Error [m]', 'H-Error [deg]')
         print(report_msg_header)
